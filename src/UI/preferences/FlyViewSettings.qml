@@ -241,7 +241,7 @@ SettingsPage {
 
         FactCheckBoxSlider{
             Layout.fillWidth: true
-            text: qsTr("Instrument Panel Top Right Corner")
+            text: qsTr("Top Right Corner")
             visible: _instrumentPanelTop.visible
             fact: _instrumentPanelTop
         }
