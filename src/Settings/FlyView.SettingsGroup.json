@@ -42,6 +42,12 @@
     "default":     false
 },
 {
+    "name": "instrumentPanelTop",
+    "shortDesc": "Instrument Panel top corner",
+    "type": "bool",
+    "default": false
+},
+{
     "name":         "showSimpleCameraControl",
     "shortDesc":    "Show controls for camera triggering using MAV_CMD_DO_DIGICAM_CONTROL.",
     "type":         "bool",

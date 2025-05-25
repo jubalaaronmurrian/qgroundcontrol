@@ -32,6 +32,7 @@ SettingsPage {
     property Fact   _enableMultiVehiclePanel:               _settingsManager.appSettings.enableMultiVehiclePanel
     property Fact   _showAdditionalIndicatorsCompass:       _flyViewSettings.showAdditionalIndicatorsCompass
     property Fact   _lockNoseUpCompass:                     _flyViewSettings.lockNoseUpCompass
+    property Fact   _instrumentPanelTop:                    _flyViewSettings.instrumentPanelTop
     property Fact   _guidedMinimumAltitude:                 _flyViewSettings.guidedMinimumAltitude
     property Fact   _guidedMaximumAltitude:                 _flyViewSettings.guidedMaximumAltitude
     property Fact   _maxGoToLocationDistance:               _flyViewSettings.maxGoToLocationDistance
@@ -222,7 +223,7 @@ SettingsPage {
     SettingsGroupLayout {
         Layout.fillWidth:   true
         heading:            qsTr("Instrument Panel")
-        visible:            _showAdditionalIndicatorsCompass.visible || _lockNoseUpCompass.visible
+        visible:            _showAdditionalIndicatorsCompass.visible || _lockNoseUpCompass.visible || _instrumentPanelTop.visible
 
         FactCheckBoxSlider {
             Layout.fillWidth:   true
@@ -236,6 +237,13 @@ SettingsPage {
             text:               qsTr("Lock Compass Nose-Up")
             visible:            _lockNoseUpCompass.visible
             fact:               _lockNoseUpCompass
+        }
+
+        FactCheckBoxSlider{
+            Layout.fillWidth: true
+            text: qsTr("Instrument Panel Top Right Corner")
+            visible: _instrumentPanelTop.visible
+            fact: _instrumentPanelTop
         }
     }
 
