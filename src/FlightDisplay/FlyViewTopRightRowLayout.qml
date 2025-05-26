@@ -13,6 +13,10 @@ import QtQuick.Layouts
 import QGroundControl
 import QGroundControl.Controls
 import QGroundControl.FlightDisplay
+import QGroundControl.FlightMap
+import QGroundControl.Palette
+import QGroundControl.ScreenTools
+
 
 RowLayout {
     TelemetryValuesBar {
@@ -26,4 +30,23 @@ RowLayout {
         id:         instrumentPanel
         visible:    QGroundControl.corePlugin.options.flyView.showInstrumentPanel && _showSingleVehicleUI
     }
+
+    // We use a Loader to load the photoVideoControlComponent only when the active vehicle is not null
+    // This make it easier to implement PhotoVideoControl without having to check for the mavlink camera
+    // to be null all over the place
+    Loader {
+        id:                 photoVideoControlLoader
+        Layout.alignment:   Qt.AlignTop | Qt.AlignRight
+        sourceComponent:    globals.activeVehicle ? photoVideoControlComponent : undefined
+
+        property real rightEdgeCenterInset: visible ? parent.width - x : 0
+
+        Component {
+            id: photoVideoControlComponent
+
+            PhotoVideoControl {
+            }
+        }
+    }
+
 }
