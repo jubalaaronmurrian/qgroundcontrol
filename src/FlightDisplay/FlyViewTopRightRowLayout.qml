@@ -36,7 +36,7 @@ RowLayout {
     // to be null all over the place
     Loader {
         id:                 photoVideoControlLoader
-        Layout.alignment:   Qt.AlignTop | Qt.AlignRight
+        Layout.alignment:   Qt.AlignTop | Qt.AlignLeft
         sourceComponent:    globals.activeVehicle ? photoVideoControlComponent : undefined
 
         property real rightEdgeCenterInset: visible ? parent.width - x : 0
