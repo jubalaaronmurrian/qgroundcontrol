@@ -15,6 +15,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QString>
 #include <QtCore/QVariant>
+#include <QtQmlIntegration/QtQmlIntegration>
 
 Q_DECLARE_LOGGING_CATEGORY(FactMetaDataLog)
 
@@ -24,7 +25,7 @@ Q_DECLARE_LOGGING_CATEGORY(FactMetaDataLog)
 class FactMetaData : public QObject
 {
     Q_OBJECT
-
+    QML_ELEMENT
 public:
     enum ValueType_t {
         valueTypeUint8,
@@ -114,6 +115,10 @@ public:
 
     static const QString defaultCategory() { return QString(kDefaultCategory); }
     static const QString defaultGroup() { return QString(kDefaultGroup); }
+
+    // Splits a comma separated list of strings into a QStringList. Taking into account the possibility that
+    // the commas may have been translated to other characters such as chinese commas.
+    static QStringList splitTranslatedList(const QString &translatedList);
 
     int decimalPlaces() const;
     QVariant rawDefaultValue() const;
@@ -250,7 +255,7 @@ private:
     bool isInRawMinLimit(const QVariant &variantValue) const;
     bool isInRawMaxLimit(const QVariant &variantValue) const;
 
-    static bool _parseEnum(const QJsonObject &jsonObject, const DefineMap_t &defineMap, QStringList &rgDescriptions, QStringList &rgValues, QString &errorString);
+    static bool _parseEnum(const QString& name, const QJsonObject &jsonObject, const DefineMap_t &defineMap, QStringList &rgDescriptions, QStringList &rgValues, QString &errorString);
     static bool _parseValuesArray(const QJsonObject &jsonObject, QStringList &rgDescriptions, QList<double> &rgValues, QString &errorString);
     static bool _parseBitmaskArray(const QJsonObject &jsonObject, QStringList &rgDescriptions, QList<int> &rgValues, QString &errorString);
 
@@ -260,6 +265,8 @@ private:
     static QVariant _radiansToDegrees(const QVariant &radians);
     static QVariant _centiDegreesToDegrees(const QVariant &centiDegrees);
     static QVariant _degreesToCentiDegrees(const QVariant &degrees);
+    static QVariant _centiCelsiusToCelsius(const QVariant &centiCelsius);
+    static QVariant _celsiusToCentiCelsius(const QVariant &celsius);
     static QVariant _userGimbalDegreesToMavlinkGimbalDegrees(const QVariant &userGimbalDegrees);
     static QVariant _mavlinkGimbalDegreesToUserGimbalDegrees(const QVariant &mavlinkGimbalDegrees);
     static QVariant _metersToFeet(const QVariant &meters);

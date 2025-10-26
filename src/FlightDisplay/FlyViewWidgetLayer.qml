@@ -19,14 +19,12 @@ import QtQml.Models
 
 import QGroundControl
 import QGroundControl.Controls
-import QGroundControl.Controllers
-import QGroundControl.Controls
-import QGroundControl.FactSystem
+
 import QGroundControl.FlightDisplay
 import QGroundControl.FlightMap
-import QGroundControl.Palette
-import QGroundControl.ScreenTools
-import QGroundControl.Vehicle
+
+
+
 
 // This is the ui overlay layer for the widgets/tools for Fly View
 Item {
@@ -153,7 +151,7 @@ Item {
         anchors.bottomMargin:       bottomLoaderMargin
         anchors.left:               parent.left   
         anchors.leftMargin:         ( y > toolStrip.y + toolStrip.height ? toolStrip.width / 2 : toolStrip.width * 1.05 + toolStrip.x) 
-        source:                     "qrc:/qml/VirtualJoystick.qml"
+        source:                     "qrc:/qml/QGroundControl/FlightDisplay/VirtualJoystick.qml"
         active:                     _virtualJoystickEnabled && !(_activeVehicle ? _activeVehicle.usingHighLatencyLink : false)
 
         property real bottomEdgeLeftInset:     parent.height-y
@@ -225,6 +223,8 @@ Item {
         anchors.top:        parent.top
         mapControl:         _mapControl
         buttonsOnLeft:      true
+        zoomButtonsVisible: false
+        autoHide:           true
         visible:            !ScreenTools.isTinyScreen && QGroundControl.corePlugin.options.flyView.showMapScale && !isViewer3DOpen && mapControl.pipState.state === mapControl.pipState.fullState
 
         property real topEdgeCenterInset: visible ? y + height : 0

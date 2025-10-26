@@ -19,9 +19,10 @@
 #include <QtCore/QDebug>
 #include <QtCore/QXmlStreamReader>
 
-QGC_LOGGING_CATEGORY(PX4ParameterMetaDataLog, "PX4ParameterMetaDataLog")
+QGC_LOGGING_CATEGORY(PX4ParameterMetaDataLog, "FirmwarePlugin.PX4ParameterMetaData")
 
-PX4ParameterMetaData::PX4ParameterMetaData(void)
+PX4ParameterMetaData::PX4ParameterMetaData(QObject* parent)
+    : QObject(parent)
 {
 
 }

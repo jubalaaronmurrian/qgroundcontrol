@@ -51,7 +51,7 @@
     "name":         "showSimpleCameraControl",
     "shortDesc":    "Show controls for camera triggering using MAV_CMD_DO_DIGICAM_CONTROL.",
     "type":         "bool",
-    "default":      true
+    "default":      false
 },
 {
     "name":         "showObstacleDistanceOverlay",
@@ -88,12 +88,12 @@
     "default":              false
 },
 {
-    "name":         "instrumentQmlFile",
+    "name":         "instrumentQmlFile2",
     "shortDesc":    "Qml file for instrument panel",
     "type":         "string",
     "enumStrings":  "Integrated Compass & Attitude,Horizontal Compass & Attitude,Large Vertical",
-    "enumValues":   "qrc:/qml/IntegratedCompassAttitude.qml,qrc:/qml/HorizontalCompassAttitude.qml,qrc:/qml/VerticalCompassAttitude.qml",
-    "default":      "qrc:/qml/IntegratedCompassAttitude.qml"
+    "enumValues":   "qrc:/qml/QGroundControl/FlightMap/Widgets/IntegratedCompassAttitude.qml,qrc:/qml/QGroundControl/FlightMap/Widgets/HorizontalCompassAttitude.qml,qrc:/qml/QGroundControl/FlightMap/Widgets/VerticalCompassAttitude.qml",
+    "default":      "qrc:/qml/QGroundControl/FlightMap/Widgets/IntegratedCompassAttitude.qml"
 },
 {
     "name":         "requestControlAllowTakeover",

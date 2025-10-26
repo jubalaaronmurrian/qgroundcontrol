@@ -9,6 +9,7 @@
 
 #include "VideoManager.h"
 #include "AppSettings.h"
+#include "MavlinkCameraControl.h"
 #include "MultiVehicleManager.h"
 #include "QGCApplication.h"
 #include "QGCCameraManager.h"
@@ -27,13 +28,14 @@
 #include "QtMultimediaReceiver.h"
 #include "UVCReceiver.h"
 
-#include <QtCore/qapplicationstatic.h>
+#include <QtCore/QApplicationStatic>
 #include <QtCore/QDir>
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickItem>
 #include <QtQuick/QQuickWindow>
+#include <QtCore/QTimer>
 
-QGC_LOGGING_CATEGORY(VideoManagerLog, "qgc.videomanager.videomanager")
+QGC_LOGGING_CATEGORY(VideoManagerLog, "Video.VideoManager")
 
 static constexpr const char *kFileExtension[VideoReceiver::FILE_FORMAT_MAX + 1] = {
     "mkv",
@@ -48,7 +50,7 @@ VideoManager::VideoManager(QObject *parent)
     , _subtitleWriter(new SubtitleWriter(this))
     , _videoSettings(SettingsManager::instance()->videoSettings())
 {
-    // qCDebug(VideoManagerLog) << this;
+    qCDebug(VideoManagerLog) << this;
 
     (void) qRegisterMetaType<VideoReceiver::STATUS>("STATUS");
 
@@ -56,26 +58,19 @@ VideoManager::VideoManager(QObject *parent)
     if (!GStreamer::initialize()) {
         qCCritical(VideoManagerLog) << "Failed To Initialize GStreamer";
     }
+#else
+    (void) qmlRegisterType<VideoItemStub>("org.freedesktop.gstreamer.Qt6GLVideoItem", 1, 0, "GstGLQt6VideoItem");
 #endif
 }
 
 VideoManager::~VideoManager()
 {
-    // qCDebug(VideoManagerLog) << this;
+    qCDebug(VideoManagerLog) << this;
 }
 
 VideoManager *VideoManager::instance()
 {
     return _videoManagerInstance();
-}
-
-void VideoManager::registerQmlTypes()
-{
-    (void) qmlRegisterUncreatableType<VideoManager>("QGroundControl.VideoManager", 1, 0, "VideoManager", "Reference only");
-    (void) qmlRegisterUncreatableType<VideoReceiver>("QGroundControl", 1, 0, "VideoReceiver","Reference only");
-#ifndef QGC_GST_STREAMING
-    (void) qmlRegisterType<VideoItemStub>("org.freedesktop.gstreamer.Qt6GLVideoItem", 1, 0, "GstGLQt6VideoItem");
-#endif
 }
 
 void VideoManager::init(QQuickWindow *window)
@@ -110,13 +105,6 @@ void VideoManager::init(QQuickWindow *window)
             continue;
         }
         receiver->setName(streamName);
-
-        void *sink = QGCCorePlugin::instance()->createVideoSink(receiver->widget(), receiver);
-        if (!sink) {
-            qCDebug(VideoManagerLog) << "createVideoSink() failed" << streamName;
-            continue;
-        }
-        receiver->setSink(sink);
 
         _initVideoReceiver(receiver, window);
     }
@@ -189,14 +177,16 @@ void VideoManager::startRecording(const QString &videoFile)
     const QString videoFileUrl = videoFile.isEmpty() ? QDateTime::currentDateTime().toString("yyyy-MM-dd_hh.mm.ss") : videoFile;
     const QString ext = kFileExtension[fileFormat];
 
-    const QString videoFileName = savePath + "/" + videoFileUrl + ".%1" + ext;
+    const QString videoFileNameTemplate = savePath + "/" + videoFileUrl + ".%1" + ext;
 
     for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
         if (!receiver->started()) {
             qCDebug(VideoManagerLog) << "Video receiver is not ready.";
             continue;
         }
-        receiver->startRecording(videoFileName.arg(receiver->name()), fileFormat);
+        const QString streamName = (receiver->name() == QStringLiteral("videoContent")) ? "" : (receiver->name() + ".");
+        const QString videoFileName = videoFileNameTemplate.arg(streamName);
+        receiver->startRecording(videoFileName, fileFormat);
     }
 }
 
@@ -349,9 +339,24 @@ bool VideoManager::isStreamSource() const
 void VideoManager::_videoSourceChanged()
 {
     bool changed = false;
-
-    for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
-        changed |= _updateSettings(receiver);
+    if (_activeVehicle) {
+        QGCCameraManager* camMgr = _activeVehicle->cameraManager();
+        for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
+            QGCVideoStreamInfo* info = nullptr;
+            if (receiver->isThermal()) {
+                info = camMgr ? camMgr->thermalStreamInstance() : nullptr;
+            } else {
+                info = camMgr ? camMgr->currentStreamInstance() : nullptr;
+            }
+            // Assign stream info
+            receiver->setVideoStreamInfo(info);
+            changed |= _updateSettings(receiver);
+        }
+    } else {
+        for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
+            receiver->setVideoStreamInfo(nullptr);
+            changed |= _updateSettings(receiver);
+        }
     }
 
     if (changed) {
@@ -420,6 +425,9 @@ bool VideoManager::_updateAutoStream(VideoReceiver *receiver)
     case VIDEO_STREAM_TYPE_RTSP:
         source = VideoSettings::videoSourceRTSP;
         url = pInfo->uri();
+        if (source == VideoSettings::videoSourceRTSP) {
+            _videoSettings->rtspUrl()->setRawValue(url);
+        }
         break;
     case VIDEO_STREAM_TYPE_TCP_MPEG:
         source = VideoSettings::videoSourceTCP;
@@ -532,13 +540,18 @@ bool VideoManager::_updateSettings(VideoReceiver *receiver)
 
 void VideoManager::_setActiveVehicle(Vehicle *vehicle)
 {
+    qCDebug(VideoManagerLog) << Q_FUNC_INFO << "new vehicle" << vehicle << "old active vehicle" << _activeVehicle;
+
     if (_activeVehicle) {
         (void) disconnect(_activeVehicle->vehicleLinkManager(), &VehicleLinkManager::communicationLostChanged, this, &VideoManager::_communicationLostChanged);
-        MavlinkCameraControl *pCamera = _activeVehicle->cameraManager()->currentCameraInstance();
-        if (pCamera) {
-            pCamera->stopStream();
+        auto cameraManager = _activeVehicle->cameraManager();
+        if (cameraManager) {
+            MavlinkCameraControl *pCamera = cameraManager->currentCameraInstance();
+            if (pCamera) {
+                pCamera->stopStream();
+            }
+            (void) disconnect(cameraManager, &QGCCameraManager::streamChanged, this, &VideoManager::_videoSourceChanged);
         }
-        (void) disconnect(_activeVehicle->cameraManager(), &QGCCameraManager::streamChanged, this, &VideoManager::_videoSourceChanged);
 
         for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
             // disconnect(receiver->videoStreamInfo(), &QGCVideoStreamInfo::infoChanged, ))
@@ -549,17 +562,23 @@ void VideoManager::_setActiveVehicle(Vehicle *vehicle)
     _activeVehicle = vehicle;
     if (_activeVehicle) {
         (void) connect(_activeVehicle->vehicleLinkManager(), &VehicleLinkManager::communicationLostChanged, this, &VideoManager::_communicationLostChanged);
-        (void) connect(_activeVehicle->cameraManager(), &QGCCameraManager::streamChanged, this, &VideoManager::_videoSourceChanged);
-        MavlinkCameraControl *pCamera = _activeVehicle->cameraManager()->currentCameraInstance();
-        if (pCamera) {
-            pCamera->resumeStream();
+        if (_activeVehicle->cameraManager()) {
+            (void) connect(_activeVehicle->cameraManager(), &QGCCameraManager::streamChanged, this, &VideoManager::_videoSourceChanged);
+            MavlinkCameraControl *pCamera = _activeVehicle->cameraManager()->currentCameraInstance();
+            if (pCamera) {
+                pCamera->resumeStream();
+            }
         }
 
         for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
-            if (receiver->isThermal()) {
-                receiver->setVideoStreamInfo(_activeVehicle->cameraManager()->thermalStreamInstance());
+            if (_activeVehicle->cameraManager()) {
+                if (receiver->isThermal()) {
+                    receiver->setVideoStreamInfo(_activeVehicle->cameraManager()->thermalStreamInstance());
+                } else {
+                    receiver->setVideoStreamInfo(_activeVehicle->cameraManager()->currentStreamInstance());
+                }
             } else {
-                receiver->setVideoStreamInfo(_activeVehicle->cameraManager()->currentStreamInstance());
+                receiver->setVideoStreamInfo(nullptr);
             }
             // connect(receiver->videoStreamInfo(), &QGCVideoStreamInfo::infoChanged, ))
         }
@@ -652,9 +671,15 @@ void VideoManager::_initVideoReceiver(VideoReceiver *receiver, QQuickWindow *win
 
     QQuickItem *widget = window->findChild<QQuickItem*>(receiver->name());
     if (!widget) {
-        qCWarning(VideoManagerLog) << "stream widget not found" << receiver->name();
+        qCCritical(VideoManagerLog) << "stream widget not found" << receiver->name();
     }
     receiver->setWidget(widget);
+
+    void *sink = QGCCorePlugin::instance()->createVideoSink(receiver->widget(), receiver);
+    if (!sink) {
+        qCCritical(VideoManagerLog) << "createVideoSink() failed" << receiver->name();
+    }
+    receiver->setSink(sink);
 
     (void) connect(receiver, &VideoReceiver::onStartComplete, this, [this, receiver](VideoReceiver::STATUS status) {
         if (!receiver) {
@@ -679,12 +704,15 @@ void VideoManager::_initVideoReceiver(VideoReceiver *receiver, QQuickWindow *win
     });
 
     (void) connect(receiver, &VideoReceiver::onStopComplete, this, [this, receiver](VideoReceiver::STATUS status) {
-        qCDebug(VideoManagerLog) << "Video" << receiver->name() << "Stop complete, status:" << status;
+        qCDebug(VideoManagerLog) << "Stop complete" << receiver->name() << receiver->uri()  << ", status:" << status;
         receiver->setStarted(false);
         if (status == VideoReceiver::STATUS_INVALID_URL) {
             qCDebug(VideoManagerLog) << "Invalid video URL. Not restarting";
         } else {
-            _startReceiver(receiver);
+            QTimer::singleShot(1000, receiver, [this, receiver]() {
+                qCDebug(VideoManagerLog) << "Restarting video receiver" << receiver->name() << receiver->uri();
+                _startReceiver(receiver);
+            });
         }
     });
 
@@ -711,7 +739,7 @@ void VideoManager::_initVideoReceiver(VideoReceiver *receiver, QQuickWindow *win
             if (!active) {
                 _subtitleWriter->stopCapturingTelemetry();
             }
-            emit recordingChanged();
+            emit recordingChanged(_recording);
         }
     });
 

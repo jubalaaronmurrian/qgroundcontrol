@@ -12,6 +12,7 @@
 #include <QtCore/QList>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QStringList>
+#include <QtQmlIntegration/QtQmlIntegration>
 
 #include <limits>
 
@@ -40,7 +41,10 @@ class UdpIODevice;
 class LinkManager : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("")
     Q_MOC_INCLUDE("QmlObjectListModel.h")
+    Q_MOC_INCLUDE("LogReplayLink.h")
     Q_PROPERTY(bool isBluetoothAvailable READ isBluetoothAvailable NOTIFY isBluetoothAvailableChanged)
     Q_PROPERTY(QmlObjectListModel *linkConfigurations READ _qmlLinkConfigurations CONSTANT)
     Q_PROPERTY(QStringList linkTypeStrings READ linkTypeStrings CONSTANT)
@@ -51,7 +55,6 @@ public:
     ~LinkManager();
 
     static LinkManager *instance();
-    static void registerQmlTypes();
 
     void init();
 
@@ -186,6 +189,7 @@ private:
     bool _allowAutoConnectToBoard(QGCSerialPortInfo::BoardType_t boardType) const;
     void _addSerialAutoConnectLink();
     bool _portAlreadyConnected(const QString &portName) const;
+    void _filterCompositePorts(QList<QGCSerialPortInfo> &portList);
 
     UdpIODevice *_nmeaSocket = nullptr;
     QMap<QString, int> _autoconnectPortWaitList;   ///< key: QGCSerialPortInfo::systemLocation, value: wait count

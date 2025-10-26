@@ -9,11 +9,8 @@
 
 #include "FlyViewSettings.h"
 
-#include <QtQml/QQmlEngine>
-
 DECLARE_SETTINGGROUP(FlyView, "FlyView")
 {
-    qmlRegisterUncreatableType<FlyViewSettings>("QGroundControl.SettingsManager", 1, 0, "FlyViewSettings", "Reference only"); \
 }
 
 DECLARE_SETTINGSFACT(FlyViewSettings, guidedMinimumAltitude)
@@ -28,7 +25,7 @@ DECLARE_SETTINGSFACT(FlyViewSettings, keepMapCenteredOnVehicle)
 DECLARE_SETTINGSFACT(FlyViewSettings, showSimpleCameraControl)
 DECLARE_SETTINGSFACT(FlyViewSettings, showObstacleDistanceOverlay)
 DECLARE_SETTINGSFACT(FlyViewSettings, updateHomePosition)
-DECLARE_SETTINGSFACT(FlyViewSettings, instrumentQmlFile)
+DECLARE_SETTINGSFACT(FlyViewSettings, instrumentQmlFile2)
 DECLARE_SETTINGSFACT(FlyViewSettings, requestControlAllowTakeover)
 DECLARE_SETTINGSFACT(FlyViewSettings, requestControlTimeout)
 DECLARE_SETTINGSFACT(FlyViewSettings,instrumentPanelTop)
