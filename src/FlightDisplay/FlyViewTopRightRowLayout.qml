@@ -17,16 +17,15 @@ import QGroundControl.FlightMap
 
 RowLayout {
     TelemetryValuesBar {
-        Layout.alignment:       Qt.AlignBottom
+        Layout.alignment:       Qt.AlignTop
         extraWidth:             instrumentPanel.extraValuesWidth
         settingsGroup:          factValueGrid.telemetryBarSettingsGroup
         specificVehicleForCard: null // Tracks active vehicle
     }
 
     FlyViewInstrumentPanel {
-        id:                 instrumentPanel
-        Layout.alignment:   Qt.AlignBottom
-        visible:            QGroundControl.corePlugin.options.flyView.showInstrumentPanel && _showSingleVehicleUI
+        id:         instrumentPanel
+        visible:    QGroundControl.corePlugin.options.flyView.showInstrumentPanel && _showSingleVehicleUI
     }
 
     // We use a Loader to load the photoVideoControlComponent only when the active vehicle is not null
@@ -34,7 +33,7 @@ RowLayout {
     // to be null all over the place
     Loader {
         id:                 photoVideoControlLoader
-        Layout.alignment:   Qt.AlignBottom | Qt.AlignLeft
+        Layout.alignment:   Qt.AlignTop | Qt.AlignLeft
         sourceComponent:    globals.activeVehicle ? photoVideoControlComponent : undefined
 
         property real rightEdgeCenterInset: visible ? parent.width - x : 0

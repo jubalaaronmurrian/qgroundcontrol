@@ -33,6 +33,7 @@ qt_add_qml_module(FlightDisplayModule
         FlyViewToolStrip.qml
         FlyViewToolStripActionList.qml
         FlyViewTopRightColumnLayout.qml
+        FlyViewTopRightRowLayout.qml
         FlyViewTopRightPanel.qml
         FlyViewVideo.qml
         FlyViewWidgetLayer.qml

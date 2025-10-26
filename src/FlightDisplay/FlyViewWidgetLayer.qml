@@ -49,6 +49,8 @@ Item {
     property real   _layoutMargin:          ScreenTools.defaultFontPixelWidth * 0.75
     property bool   _layoutSpacing:         ScreenTools.defaultFontPixelWidth
     property bool   _showSingleVehicleUI:   true
+    property var    _settingsManager:                       QGroundControl.settingsManager
+    property var    _flyViewSettings:                       _settingsManager.flyViewSettings
 
     property bool utmspActTrigger
 
@@ -95,12 +97,26 @@ Item {
         property real rightEdgeCenterInset: rightEdgeTopInset
     }
 
+    FlyViewTopRightRowLayout {
+            id:                 topRightRowLayout
+            anchors.margins:    _layoutMargin
+            anchors.top:     parent.top
+            anchors.right:      parent.right
+            spacing:            _layoutSpacing
+            visible: _flyViewSettings.instrumentPanelTop.rawValue
+
+            property real bottomEdgeRightInset:     height + _layoutMargin
+            property real bottomEdgeCenterInset:    bottomEdgeRightInset
+            property real rightEdgeBottomInset:     width + _layoutMargin
+    }
+
     FlyViewBottomRightRowLayout {
         id:                 bottomRightRowLayout
         anchors.margins:    _layoutMargin
         anchors.bottom:     parent.bottom
         anchors.right:      parent.right
         spacing:            _layoutSpacing
+        visible: !_flyViewSettings.instrumentPanelTop.rawValue
 
         property real bottomEdgeRightInset:     height + _layoutMargin
         property real bottomEdgeCenterInset:    bottomEdgeRightInset

@@ -30,6 +30,12 @@
     "default":     false
 },
 {
+    "name": "instrumentPanelTop",
+    "shortDesc": "Instrument Panel top corner",
+    "type": "bool",
+    "default": false
+},
+{
     "name":             "lockNoseUpCompass",
     "shortDesc": "Lock Compass Nose-Up",
     "type":             "bool",

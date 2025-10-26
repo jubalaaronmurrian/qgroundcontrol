@@ -42,6 +42,7 @@ SettingsPage {
     property Fact   _viewer3DOsmFilePath:                   _viewer3DSettings.osmFilePath
     property Fact   _viewer3DBuildingLevelHeight:           _viewer3DSettings.buildingLevelHeight
     property Fact   _viewer3DAltitudeBias:                  _viewer3DSettings.altitudeBias
+    property Fact   _instrumentPanelTop:                    _flyViewSettings.instrumentPanelTop
 
     function mavlinkActionList() {
         var fileModel = QGCFileDialogController.getFiles(_settingsManager.appSettings.mavlinkActionsSavePath, "*.json")
@@ -220,7 +221,7 @@ SettingsPage {
     SettingsGroupLayout {
         Layout.fillWidth:   true
         heading:            qsTr("Instrument Panel")
-        visible:            _showAdditionalIndicatorsCompass.visible || _lockNoseUpCompass.visible
+        visible:            _showAdditionalIndicatorsCompass.visible || _lockNoseUpCompass.visible || _instrumentPanelTop.visible
 
         FactCheckBoxSlider {
             Layout.fillWidth:   true
@@ -235,6 +236,14 @@ SettingsPage {
             visible:            _lockNoseUpCompass.visible
             fact:               _lockNoseUpCompass
         }
+
+        FactCheckBoxSlider{
+                    Layout.fillWidth: true
+                    text: qsTr("Top Right Corner")
+                    visible: _instrumentPanelTop.visible
+                    fact: _instrumentPanelTop
+        }
+
     }
 
     SettingsGroupLayout {
