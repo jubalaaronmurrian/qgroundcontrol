@@ -473,6 +473,30 @@ SettingsPage {
                     Layout.fillWidth:   true
                 }
 
+                LabelledLabel {
+                    id :                gcsPositionLatitudeLabel
+                    label:              qsTr("GCS Latitude")
+                    labelText:          gcsPosition.latitude
+                    visible:            labelText !== ""
+                    Layout.fillWidth:   true
+                }
+
+                LabelledLabel {
+                    id :                gcsPositionLongitudeLabel
+                    label:              qsTr("GCS Longitude")
+                    labelText:          gcsPosition.longitude
+                    visible:            labelText !== ""
+                    Layout.fillWidth:   true
+                }
+
+                LabelledLabel {
+                    id :                gcsPositionAltitudeLabel
+                    label:              qsTr("GCS Altitude")
+                    labelText:          gcsPosition.altitude
+                    visible:            labelText !== ""
+                    Layout.fillWidth:   true
+                }
+
                 LabelledFactTextField {
                     label:                      _fact.shortDescription
                     fact:                       _fact

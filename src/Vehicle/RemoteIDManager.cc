@@ -23,7 +23,6 @@ QGC_LOGGING_CATEGORY(RemoteIDManagerLog, "Vehicle.RemoteIDManager")
 #define MAVLINK_UNKNOWN_LAT 0
 #define MAVLINK_UNKNOWN_LON 0
 #define SENDING_RATE_MSEC 1000
-#define ALLOWED_GPS_DELAY 5000
 #define RID_TIMEOUT 2500 // Messages should be arriving at 1 Hz, so we set a 2 second timeout
 
 const uint8_t* RemoteIDManager::_id_or_mac_unknown = new uint8_t[MAVLINK_MSG_OPEN_DRONE_ID_OPERATOR_ID_FIELD_ID_OR_MAC_LEN]();
@@ -297,27 +296,10 @@ void RemoteIDManager::_sendSystem()
 
         // GPS position needs to be valid before checking other stuff
         if (geoPositionInfo.isValid()) {
-            // If we dont have altitude for FAA then the GPS data is no good
-            if ((_settings->region()->rawValue().toInt() == Region::FAA) && !(gcsPosition.altitude() >= 0) && _gcsGPSGood) {
-                _gcsGPSGood = false;
-                emit gcsGPSGoodChanged();
-                qCDebug(RemoteIDManagerLog) << "GCS GPS data error (no altitude): Altitude data is mandatory for GCS GPS data in FAA regions.";
-                return;
-            }
-
-            // If the GPS data is older than ALLOWED_GPS_DELAY we cannot use this data
-            if (_lastGeoPositionTimeStamp.msecsTo(QDateTime::currentDateTime().currentDateTimeUtc()) > ALLOWED_GPS_DELAY) {
-                if (_gcsGPSGood) {
-                    _gcsGPSGood = false;
-                    emit gcsGPSGoodChanged();
-                    qCDebug(RemoteIDManagerLog) << "GCS GPS data is older than 5 seconds";
-                }
-            } else {
                 if (!_gcsGPSGood) {
                     _gcsGPSGood = true;
                     emit gcsGPSGoodChanged();
                 }
-            }
         } else {
             _gcsGPSGood = false;
             emit gcsGPSGoodChanged();
