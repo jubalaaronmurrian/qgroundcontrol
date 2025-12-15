@@ -134,7 +134,10 @@ void QGCPositionManager::_positionUpdated(const QGeoPositionInfo &update)
         if (_gcsPositionVerticalAccuracy <= kMinVerticalAccuracyMeters) {
             newGCSPosition.setAltitude(update.coordinate().altitude());
         }
+    }else{
+        newGCSPosition.setAltitude(update.coordinate().altitude());
     }
+
 
     _gcsPositionAccuracy = sqrt(pow(_gcsPositionHorizontalAccuracy, 2) + pow(_gcsPositionVerticalAccuracy, 2));
 
