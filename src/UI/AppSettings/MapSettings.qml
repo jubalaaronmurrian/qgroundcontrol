@@ -14,12 +14,9 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 
 import QGroundControl
-
 import QGroundControl.FactControls
 import QGroundControl.Controls
-
 import QGroundControl.QGCMapEngineManager
-
 
 Item {
     id: root
@@ -187,6 +184,12 @@ Item {
                 textFieldPreferredWidth:    _largeTextFieldWidth
                 label:                      qsTr("VWorld")
                 fact:                       _appSettings.vworldToken
+            }
+
+            LabelledFactTextField {
+                textFieldPreferredWidth:    _largeTextFieldWidth
+                label:                      qsTr("OpenAIP")
+                fact:                       _appSettings.openaipToken
             }
         }
 

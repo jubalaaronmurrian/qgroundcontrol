@@ -10,12 +10,16 @@
 # Default Configuration
 # ----------------------------------------------------------------------------
 
-# Set default version based on platform
+# Set default version based on platform (from build-config.json)
 if(NOT DEFINED GStreamer_FIND_VERSION)
     if(LINUX)
         set(GStreamer_FIND_VERSION 1.20)
+    elseif(WIN32)
+        set(GStreamer_FIND_VERSION ${QGC_CONFIG_GSTREAMER_WIN_VERSION})
+    elseif(ANDROID)
+        set(GStreamer_FIND_VERSION ${QGC_CONFIG_GSTREAMER_ANDROID_VERSION})
     else()
-        set(GStreamer_FIND_VERSION 1.22.12)
+        set(GStreamer_FIND_VERSION ${QGC_CONFIG_GSTREAMER_VERSION})
     endif()
 endif()
 
@@ -168,6 +172,21 @@ elseif(ANDROID)
         set(ENV{PKG_CONFIG_LIBDIR} "${GSTREAMER_LIB_PATH}/pkgconfig;${GSTREAMER_PLUGIN_PATH}/pkgconfig")
         list(APPEND PKG_CONFIG_ARGN --dont-define-prefix)
     elseif(CMAKE_HOST_UNIX)
+        if(CMAKE_HOST_APPLE)
+            # Try to find pkg-config in common Homebrew locations and in PATH
+            find_program(PKG_CONFIG_EXECUTABLE
+                NAMES pkg-config
+                PATHS /opt/homebrew/bin /usr/local/bin
+                NO_DEFAULT_PATH
+            )
+            if(NOT PKG_CONFIG_EXECUTABLE)
+                # Fallback to PATH search if not found in Homebrew locations
+                find_program(PKG_CONFIG_EXECUTABLE pkg-config)
+            endif()
+            if(NOT PKG_CONFIG_EXECUTABLE)
+                message(FATAL_ERROR "Could not find pkg-config. Please install pkg-config using tools/setup/install-dependencies-osx.sh.")
+            endif()
+        endif()
         set(ENV{PKG_CONFIG_LIBDIR} "${GSTREAMER_LIB_PATH}/pkgconfig:${GSTREAMER_PLUGIN_PATH}/pkgconfig")
     endif()
     list(APPEND PKG_CONFIG_ARGN

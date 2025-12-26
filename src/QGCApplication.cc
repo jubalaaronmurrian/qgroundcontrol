@@ -22,6 +22,7 @@
 #include <QtQuick/QQuickImageProvider>
 #include <QtQuick/QQuickWindow>
 #include <QtQuickControls2/QQuickStyle>
+#include <QtSvg/QSvgRenderer>
 
 #include <QtCore/private/qthread_p.h>
 
@@ -147,6 +148,9 @@ QGCApplication::QGCApplication(int &argc, char *argv[], const QGCCommandLinePars
 
     // We need to set language as early as possible prior to loading on JSON files.
     setLanguage();
+
+    // Force old SVG Tiny 1.2 behavior for compatibility
+    QSvgRenderer::setDefaultOptions(QtSvg::Tiny12FeaturesOnly);
 
 #ifndef QGC_DAILY_BUILD
     _checkForNewVersion();
@@ -405,7 +409,8 @@ void QGCApplication::showAppMessage(const QString &message, const QString &title
         QMetaObject::invokeMethod(rootQmlObject, "_showMessageDialog", Q_RETURN_ARG(QVariant, varReturn), Q_ARG(QVariant, dialogTitle), Q_ARG(QVariant, varMessage));
     } else if (runningUnitTests()) {
         // Unit tests can run without UI
-        qCDebug(QGCApplicationLog) << "QGCApplication::showAppMessage unittest title:message" << dialogTitle << message;
+        // We don't use a logging category to make it easier to debug unit tests
+        qDebug() << "QGCApplication::showAppMessage unittest title:message" << dialogTitle << message;
     } else {
         // UI isn't ready yet
         _delayedAppMessages.append(QPair<QString, QString>(dialogTitle, message));

@@ -14,13 +14,8 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 
 import QGroundControl
-
 import QGroundControl.FactControls
 import QGroundControl.Controls
-
-
-
-
 
 SettingsPage {
     property var    _settingsManager:                       QGroundControl.settingsManager
@@ -110,6 +105,13 @@ SettingsPage {
             fact:               _updateHomePosition
             visible:            _updateHomePosition.visible
             property Fact _updateHomePosition: _flyViewSettings.updateHomePosition
+        }
+
+        FactCheckBoxSlider {
+            Layout.fillWidth:   true
+            text:               qsTr("Show Joystick Status in Toolbar")
+            fact:               _flyViewSettings.showJoystickIndicatorInToolbar
+            visible:            fact.visible
         }
     }
 

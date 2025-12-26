@@ -18,6 +18,13 @@
 #include "QGCVideoStreamInfo.h"
 #include "SimulatedCameraControl.h"
 
+#include <cmath>
+#include "GimbalControllerSettings.h"
+#include "SettingsManager.h"
+#include <numbers>
+
+constexpr double kPi = std::numbers::pi_v<double>;
+
 QGC_LOGGING_CATEGORY(CameraManagerLog, "Camera.QGCCameraManager")
 
 namespace {
@@ -27,6 +34,32 @@ namespace {
 }
 
 QVariantList QGCCameraManager::_cameraList;
+
+static void _requestFovOnZoom_Handler(
+    void* user,
+    MAV_RESULT result,
+    Vehicle::RequestMessageResultHandlerFailureCode_t failureCode,
+    const mavlink_message_t& message)
+{
+    auto* mgr = static_cast<QGCCameraManager*>(user);
+
+    if (result != MAV_RESULT_ACCEPTED) {
+        qCDebug(CameraManagerLog) << "CAMERA_FOV_STATUS request failed, result:"
+                                  << result << "failure:" << failureCode;
+        return;
+    }
+
+    if (message.msgid != MAVLINK_MSG_ID_CAMERA_FOV_STATUS) {
+        qCDebug(CameraManagerLog) << "Unexpected msg id:" << message.msgid;
+        return;
+    }
+
+    mavlink_camera_fov_status_t fov{};
+
+    mavlink_msg_camera_fov_status_decode(&message, &fov);
+
+    if (!mgr) return;
+}
 
 /*===========================================================================*/
 
@@ -148,6 +181,9 @@ void QGCCameraManager::_mavlinkMessageReceived(const mavlink_message_t &message)
         case MAVLINK_MSG_ID_CAMERA_TRACKING_IMAGE_STATUS:
             _handleTrackingImageStatus(message);
             break;
+        case MAVLINK_MSG_ID_CAMERA_FOV_STATUS:
+            _handleCameraFovStatus(message);
+            break;
         default:
             break;
         }
@@ -159,7 +195,7 @@ void QGCCameraManager::_handleHeartbeat(const mavlink_message_t &message)
     const QString sCompID = QString::number(message.compid);
 
     if (!_cameraInfoRequest.contains(sCompID)) {
-        qCDebug(CameraManagerLog) << "Heartbeat from" << message.compid;
+        qCDebug(CameraManagerLog) << "Heartbeat from" << QGCMAVLink::compIdToString(message.compid);
         CameraStruct *pInfo = new CameraStruct(this, message.compid, _vehicle);
         pInfo->lastHeartbeat.start();
         _cameraInfoRequest[sCompID] = pInfo;
@@ -179,7 +215,7 @@ void QGCCameraManager::_handleHeartbeat(const mavlink_message_t &message)
     }
 
     if (pInfo->lastHeartbeat.elapsed() > kSilentTimeoutMs) {
-        qCDebug(CameraManagerLog) << "Camera" << message.compid << "reappeared after being silent. Resetting retry count and requesting info.";
+        qCDebug(CameraManagerLog) << "Camera" << QGCMAVLink::compIdToString(message.compid) << "reappeared after being silent. Resetting retry count and requesting info.";
         pInfo->retryCount = 0;
         pInfo->backoffTimer.stop();
         pInfo->lastHeartbeat.start();
@@ -241,6 +277,12 @@ MavlinkCameraControl *QGCCameraManager::_findCamera(int id)
 
 void QGCCameraManager::_addCameraControlToLists(MavlinkCameraControl *cameraControl)
 {
+    if (qobject_cast<SimulatedCameraControl*>(cameraControl)) {
+        qCDebug(CameraManagerLog) << "Adding simulated camera to list";
+    } else {
+        qCDebug(CameraManagerLog) << "Adding real camera to list - simulated camera will be removed if present";
+    }
+
     _cameras.append(cameraControl);
     _cameraLabels.append(cameraControl->modelName());
     emit camerasChanged();
@@ -259,15 +301,20 @@ void QGCCameraManager::_addCameraControlToLists(MavlinkCameraControl *cameraCont
 void QGCCameraManager::_handleCameraInfo(const mavlink_message_t& message)
 {
     const QString sCompID = QString::number(message.compid);
-    if (!_cameraInfoRequest.contains(sCompID) || _cameraInfoRequest[sCompID]->infoReceived) {
+    if (!_cameraInfoRequest.contains(sCompID)) {
+        qCDebug(CameraManagerLog) << "Ignoring - Camera info not requested for component" << QGCMAVLink::compIdToString(message.compid);
+        return;
+    }
+    if (_cameraInfoRequest[sCompID]->infoReceived) {
+        qCDebug(CameraManagerLog) << "Ignoring - Already received camera info for component" << QGCMAVLink::compIdToString(message.compid);
         return;
     }
 
     mavlink_camera_information_t info{};
     mavlink_msg_camera_information_decode(&message, &info);
-    qCDebug(CameraManagerLog) << reinterpret_cast<const char*>(info.model_name)
-                              << reinterpret_cast<const char*>(info.vendor_name)
-                              << "Comp ID:" << message.compid;
+    qCDebug(CameraManagerLog) << "Camera information received from" << QGCMAVLink::compIdToString(message.compid)
+                          << "Model:" << reinterpret_cast<const char*>(info.model_name);
+    qCDebug(CameraManagerLog) << "Creating MavlinkCameraControl for camera";
 
     MavlinkCameraControl *pCamera = _vehicle->firmwarePlugin()->createCameraControl(&info, _vehicle, message.compid, this);
     if (pCamera) {
@@ -276,8 +323,22 @@ void QGCCameraManager::_handleCameraInfo(const mavlink_message_t& message)
         _cameraInfoRequest[sCompID]->infoReceived = true;
         _cameraInfoRequest[sCompID]->retryCount = 0;
         _cameraInfoRequest[sCompID]->backoffTimer.stop();
-        qCDebug(CameraManagerLog) << "Success for compId" << message.compid << "- reset retry counter";
+        qCDebug(CameraManagerLog) << "Success for compId" << QGCMAVLink::compIdToString(message.compid) << "- reset retry counter";
     }
+
+    double aspect = std::numeric_limits<double>::quiet_NaN();
+
+    if (info.resolution_h > 0 && info.resolution_v > 0) {
+        aspect = double(info.resolution_v) / double(info.resolution_h);
+    } else if (info.sensor_size_h > 0.f && info.sensor_size_v > 0.f) {
+        aspect = double(info.sensor_size_v) / double(info.sensor_size_h);
+    }
+
+    _aspectByCompId.insert(message.compid, aspect);
+
+    const double sensorH = static_cast<double>(info.sensor_size_h);
+    const double sensorV = static_cast<double>(info.sensor_size_v);
+    const double focal   = static_cast<double>(info.focal_length);
 }
 
 void QGCCameraManager::_checkForLostCameras()
@@ -304,6 +365,7 @@ void QGCCameraManager::_checkForLostCameras()
         if (pCamera) {
             const int idx = _cameras.indexOf(pCamera);
             if (idx >= 0) {
+                qCDebug(CameraManagerLog) << "Removing lost camera" << QGCMAVLink::compIdToString(pInfo->compID);
                 removedAny = true;
                 (void) _cameraLabels.removeAt(idx);
                 (void) _cameras.removeAt(idx);
@@ -352,13 +414,27 @@ void QGCCameraManager::_handleStorageInfo(const mavlink_message_t &message)
     }
 }
 
-void QGCCameraManager::_handleCameraSettings(const mavlink_message_t &message)
+void QGCCameraManager::_handleCameraSettings(const mavlink_message_t& message)
 {
-    MavlinkCameraControl *pCamera = _findCamera(message.compid);
+    auto pCamera = _findCamera(message.compid);
     if (pCamera) {
         mavlink_camera_settings_t settings{};
         mavlink_msg_camera_settings_decode(&message, &settings);
         pCamera->handleSettings(settings);
+
+        const int newZoom = static_cast<int>(settings.zoomLevel);
+        if (QThread::currentThread() == thread()) {
+            _setCurrentZoomLevel(newZoom);
+        } else {
+            QMetaObject::invokeMethod(
+                this,
+                "_setCurrentZoomLevel",
+                Qt::QueuedConnection,
+                Q_ARG(int, newZoom)
+            );
+        }
+
+        requestCameraFovForComp(message.compid);
     }
 }
 
@@ -430,7 +506,10 @@ static void _requestCameraInfoCommandResultHandler(void *resultHandlerData, int 
     auto *cameraInfo = static_cast<QGCCameraManager::CameraStruct*>(resultHandlerData);
 
     if (ack.result != MAV_RESULT_ACCEPTED) {
-        qCDebug(CameraManagerLog) << "MAV_CMD_REQUEST_CAMERA_INFORMATION failed. compId" << cameraInfo->compID << "Result:" << ack.result << "FailureCode:" << failureCode << "retryCount:" << cameraInfo->retryCount;
+        qCDebug(CameraManagerLog) << "MAV_CMD_REQUEST_CAMERA_INFORMATION failed. compId" << QGCMAVLink::compIdToString(cameraInfo->compID)
+                                    << "Result:" << QGCMAVLink::mavResultToString(ack.result)
+                                    << "FailureCode:" << Vehicle::mavCmdResultFailureCodeToString(failureCode)
+                                    << "retryCount:" << cameraInfo->retryCount;
         _handleCameraInfoRetry(cameraInfo);
     }
 }
@@ -440,7 +519,10 @@ static void _requestCameraInfoMessageResultHandler(void *resultHandlerData, MAV_
     auto *cameraInfo = static_cast<QGCCameraManager::CameraStruct*>(resultHandlerData);
 
     if (result != MAV_RESULT_ACCEPTED) {
-        qCDebug(CameraManagerLog) << "MAV_CMD_REQUEST_MESSAGE:MAVLINK_MSG_ID_CAMERA_INFORMATION failed. compId" << cameraInfo->compID << "Result:" << result << "FailureCode:" << failureCode << "retryCount:" << cameraInfo->retryCount;
+        qCDebug(CameraManagerLog) << "MAV_CMD_REQUEST_MESSAGE:MAVLINK_MSG_ID_CAMERA_INFORMATION failed. compId" << QGCMAVLink::compIdToString(cameraInfo->compID)
+                                    << "Result:" << QGCMAVLink::mavResultToString(result)
+                                    << "FailureCode:" << Vehicle::requestMessageResultHandlerFailureCodeToString(failureCode)
+                                    << "retryCount:" << cameraInfo->retryCount;
         _handleCameraInfoRetry(cameraInfo);
     }
 }
@@ -449,16 +531,16 @@ static void _requestCameraInfoHelper(QGCCameraManager *manager, QGCCameraManager
 {
     // Give up after max attempts
     if (pInfo->retryCount >= kMaxRetryCount) {
-        qCWarning(CameraManagerLog) << "Giving up requesting camera info after" << pInfo->retryCount << "attempts for compId" << pInfo->compID;
+        qCDebug(CameraManagerLog) << "Giving up requesting camera info after" << pInfo->retryCount << "attempts for compId" << QGCMAVLink::compIdToString(pInfo->compID);
         return;
     }
 
     // Alternate between REQUEST_MESSAGE and REQUEST_CAMERA_INFORMATION
     if ((pInfo->retryCount % 2) == 0) {
-        qCDebug(CameraManagerLog) << "Using MAV_CMD_REQUEST_MESSAGE for compId" << pInfo->compID;
+        qCDebug(CameraManagerLog) << "Using MAV_CMD_REQUEST_MESSAGE:CAMERA_INFORMATION for compId" << QGCMAVLink::compIdToString(pInfo->compID);
         manager->vehicle()->requestMessage(_requestCameraInfoMessageResultHandler, pInfo, pInfo->compID, MAVLINK_MSG_ID_CAMERA_INFORMATION);
     } else {
-        qCDebug(CameraManagerLog) << "Using MAV_CMD_REQUEST_CAMERA_INFORMATION for compId" << pInfo->compID;
+        qCDebug(CameraManagerLog) << "Using MAV_CMD_REQUEST_CAMERA_INFORMATION for compId" << QGCMAVLink::compIdToString(pInfo->compID);
 
         Vehicle::MavCmdAckHandlerInfo_t ackHandlerInfo{};
         ackHandlerInfo.resultHandler        = _requestCameraInfoCommandResultHandler;
@@ -478,7 +560,7 @@ static void _handleCameraInfoRetry(QGCCameraManager::CameraStruct *cameraInfo)
 
     QGCCameraManager *manager = cameraInfo->manager;
     if (!manager) {
-        qCDebug(CameraManagerLog) << "manager is unavailable for compId" << cameraInfo->compID;
+        qCDebug(CameraManagerLog) << "manager is unavailable for compId" << QGCMAVLink::compIdToString(cameraInfo->compID);
         return;
     }
 
@@ -489,7 +571,7 @@ static void _handleCameraInfoRetry(QGCCameraManager::CameraStruct *cameraInfo)
         const int delaySeconds = 1 << (cameraInfo->retryCount / 2);
         const int delayMs = delaySeconds * 1000;
 
-        qCDebug(CameraManagerLog) << "Waiting" << delaySeconds << "seconds before retry for compId" << cameraInfo->compID;
+        qCDebug(CameraManagerLog) << "Waiting" << delaySeconds << "seconds before retry for compId" << QGCMAVLink::compIdToString(cameraInfo->compID);
 
         cameraInfo->backoffTimer.stop();
         (void) QObject::disconnect(&cameraInfo->backoffTimer, nullptr, nullptr, nullptr);
@@ -661,4 +743,72 @@ const QVariantList &QGCCameraManager::cameraList() const
         }
     }
     return _cameraList;
+}
+
+void QGCCameraManager::requestCameraFovForComp(int compId) {
+    if (!_vehicle) {
+        qCWarning(CameraManagerLog) << "requestCameraFovForComp: vehicle is null";
+        return;
+    }
+    _vehicle->requestMessage(_requestFovOnZoom_Handler, /*user*/this,
+                             compId, MAVLINK_MSG_ID_CAMERA_FOV_STATUS);
+}
+
+//-----------------------------------------------------------------------------
+double QGCCameraManager::aspectForComp(int compId) const {
+    auto it = _aspectByCompId.constFind(compId);
+    return (it == _aspectByCompId.cend())
+           ? std::numeric_limits<double>::quiet_NaN()
+           : it.value();
+}
+
+double QGCCameraManager::currentCameraAspect(){
+    if (auto* cam = currentCameraInstance()) {
+        return aspectForComp(cam->compID());
+    }
+    return std::numeric_limits<double>::quiet_NaN();
+}
+void QGCCameraManager::_handleCameraFovStatus(const mavlink_message_t& message)
+{
+    mavlink_camera_fov_status_t fov{};
+    mavlink_msg_camera_fov_status_decode(&message, &fov);
+
+    if (!std::isfinite(fov.hfov) || fov.hfov <= 0.0 || fov.hfov >= 180.0) {
+        return;
+    }
+
+    double aspect = aspectForComp(message.compid);
+    if (!std::isfinite(aspect) || aspect <= 0.0) {
+        aspect = 16.0 / 9.0;
+    }
+
+    const double hfovRad = fov.hfov * kPi / 180.0;
+    const double vfovRad = 2.0 * std::atan(std::tan(hfovRad * 0.5) * aspect);
+    const double vfovDeg = vfovRad * 180.0 / kPi;
+
+    if (!std::isfinite(vfovDeg) || vfovDeg <= 0.0 || vfovDeg >= 180.0) {
+        qCWarning(CameraManagerLog) << "Invalid calculated VFOV:" << vfovDeg
+                                    << "hfov:" << fov.hfov
+                                    << "aspect:" << aspect
+                                    << "compId:" << message.compid;
+        return;
+    }
+
+    auto* settings = SettingsManager::instance()->gimbalControllerSettings();
+    settings->CameraHFov()->setRawValue(fov.hfov);
+    settings->CameraVFov()->setRawValue(vfovDeg);
+}
+
+void QGCCameraManager::_setCurrentZoomLevel(int level)
+{
+    if (_zoomValueCurrent == level) {
+        return;
+    }
+    _zoomValueCurrent = level;
+    emit currentZoomLevelChanged();
+}
+
+int QGCCameraManager::currentZoomLevel() const
+{
+    return _zoomValueCurrent;
 }

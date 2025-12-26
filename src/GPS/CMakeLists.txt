@@ -18,6 +18,8 @@ target_sources(${CMAKE_PROJECT_NAME}
         GPSRtk.h
         GPSRTKFactGroup.cc
         GPSRTKFactGroup.h
+        NTRIP.cc
+        NTRIP.h
         RTCMMavlink.cc
         RTCMMavlink.h
         satellite_info.h
@@ -36,7 +38,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_
 CPMAddPackage(
     NAME px4-gpsdrivers
     GITHUB_REPOSITORY PX4/PX4-GPSDrivers
-    GIT_TAG main
+    GIT_TAG caf5158061bd10e79c9f042abb62c86bc6f3e7a7
     SOURCE_SUBDIR src
 )
 

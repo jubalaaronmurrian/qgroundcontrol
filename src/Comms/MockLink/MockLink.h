@@ -21,6 +21,8 @@
 #include <QtCore/QMutex>
 #include <QtPositioning/QGeoCoordinate>
 
+#include <atomic>
+
 class MockLinkFTP;
 class MockLinkWorker;
 class QThread;
@@ -91,6 +93,26 @@ public:
         FailRequestMessageCommandNoResponse,
     };
     void setRequestMessageFailureMode(RequestMessageFailureMode_t failureMode) { _requestMessageFailureMode = failureMode; }
+
+    enum ParamSetFailureMode_t {
+        FailParamSetNone,               ///< Normal behavior
+        FailParamSetNoAck,              ///< Do not send PARAM_VALUE ack
+        FailParamSetFirstAttemptNoAck,  ///< Skip ack on first attempt, respond to retry
+    };
+    void setParamSetFailureMode(ParamSetFailureMode_t mode) {
+        _paramSetFailureMode = mode;
+        _paramSetFailureFirstAttemptPending = (mode == FailParamSetFirstAttemptNoAck);
+    }
+
+    enum ParamRequestReadFailureMode_t {
+        FailParamRequestReadNone,               ///< Normal behavior
+        FailParamRequestReadNoResponse,         ///< Do not respond to PARAM_REQUEST_READ
+        FailParamRequestReadFirstAttemptNoResponse, ///< Skip response on first attempt, respond to retry
+    };
+    void setParamRequestReadFailureMode(ParamRequestReadFailureMode_t mode) {
+        _paramRequestReadFailureMode = mode;
+        _paramRequestReadFailureFirstAttemptPending = (mode == FailParamRequestReadFirstAttemptNoResponse);
+    }
 
     static MockLink *startPX4MockLink(bool sendStatusText, MockConfiguration::FailureMode_t failureMode = MockConfiguration::FailNone);
     static MockLink *startGenericMockLink(bool sendStatusText, MockConfiguration::FailureMode_t failureMode = MockConfiguration::FailNone);
@@ -164,7 +186,6 @@ private:
     void _handleParamMapRC(const mavlink_message_t &msg);
     void _handleRequestMessage(const mavlink_command_long_t &request, bool &accepted, bool &noAck);
     void _handleRequestMessageAutopilotVersion(const mavlink_command_long_t &request, bool &accepted);
-    void _handleRequestMessageProtocolVersion(const mavlink_command_long_t &request, bool &accepted);
     void _handleRequestMessageDebug(const mavlink_command_long_t &request, bool &accepted, bool &noAck);
     void _handleRequestMessageAvailableModes(const mavlink_command_long_t &request, bool &accepted);
     void _handleRequestMessageGimbalManagerInformation(const mavlink_command_long_t &request, bool &accepted);
@@ -264,6 +285,10 @@ private:
     bool _sendGimbalDeviceAttitudeStatusNow = false;
 
     RequestMessageFailureMode_t _requestMessageFailureMode = FailRequestMessageNone;
+    ParamSetFailureMode_t _paramSetFailureMode = FailParamSetNone;
+    bool _paramSetFailureFirstAttemptPending = false;
+    ParamRequestReadFailureMode_t _paramRequestReadFailureMode = FailParamRequestReadNone;
+    bool _paramRequestReadFailureFirstAttemptPending = false;
 
     QMap<MAV_CMD, int> _receivedMavCommandCountMap;
     QMap<int, QMap<QString, QVariant>> _mapParamName2Value;
@@ -297,4 +322,6 @@ private:
     static constexpr bool _mavlinkStarted = true;
 
     static QList<FlightMode_t> _availableFlightModes;
+
+    std::atomic<bool> _disconnectedEmitted{false};
 };

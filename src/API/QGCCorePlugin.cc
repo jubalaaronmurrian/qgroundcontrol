@@ -110,7 +110,7 @@ const QmlObjectListModel *QGCCorePlugin::customMapItems()
     return _emptyCustomMapItems;
 }
 
-bool QGCCorePlugin::adjustSettingMetaData(const QString &settingsGroup, FactMetaData &metaData)
+void QGCCorePlugin::adjustSettingMetaData(const QString &settingsGroup, FactMetaData &metaData, bool &visible)
 {
     if (settingsGroup == AppSettings::settingsGroup) {
         if (metaData.name() == AppSettings::indoorPaletteName) {
@@ -121,22 +121,21 @@ bool QGCCorePlugin::adjustSettingMetaData(const QString &settingsGroup, FactMeta
             outdoorPalette = 1;
 #endif
             metaData.setRawDefaultValue(outdoorPalette);
-            return true;
+            return;
         }
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
         else if (metaData.name() == MavlinkSettings::telemetrySaveName) {
             metaData.setRawDefaultValue(false);
-            return true;
+            return;
         }
 #endif
 #ifndef Q_OS_ANDROID
-        else if (metaData.name() == AppSettings::androidSaveToSDCardName) {
-            return false;
+        else if (metaData.name() == AppSettings::androidDontSaveToSDCardName) {
+            visible = false;
+            return;
         }
 #endif
     }
-
-    return true;
 }
 
 QString QGCCorePlugin::showAdvancedUIMessage() const
@@ -153,7 +152,7 @@ void QGCCorePlugin::factValueGridCreateDefaultSettings(FactValueGrid* factValueG
     FactValueGrid::FontSize defaultFontSize = FactValueGrid::DefaultFontSize;
 #else
     FactValueGrid::FontSize defaultFontSize = FactValueGrid::MediumFontSize;
-#endif    
+#endif
 
     if (factValueGrid->specificVehicleForCard()) {
         bool includeFWValues = factValueGrid->vehicleClass() == QGCMAVLink::VehicleClassFixedWing || factValueGrid->vehicleClass() == QGCMAVLink::VehicleClassVTOL || factValueGrid->vehicleClass() == QGCMAVLink::VehicleClassAirship;

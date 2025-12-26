@@ -1,5 +1,5 @@
 ---
-qt_version: 6.8.3
+qt_version: 6.10.1
 ---
 
 # Getting Started with Source and Builds
@@ -90,9 +90,8 @@ To install Qt:
    - **Fedora:** `sudo dnf install speech-dispatcher SDL2-devel SDL2 systemd-devel patchelf`
    - **Arch Linux:** `pacman -Sy speech-dispatcher patchelf`
    - **Mac** `sh qgroundcontrol/tools/setup/install-dependencies-osx.sh`
-   - **Android** [Setup](https://doc.qt.io/qt-6/android-getting-started.html). JDK17 is required for the latest updated versions. NDK Version: 25.1.8937393
-     You can confirm it is being used by reviewing the project setting: **Projects > Manage Kits > Devices > Android (tab) > Android Settings > _JDK location_**.
-     Note: Visit here for more detailed configurations [android.yml](.github/workflows/android.yml)
+   - **Windows** `qgroundcontrol/tools/setup/install-depedencies-windows.ps1`
+   - **Android** Installing dependencies for android is quite involved. You are better off using Qt documentation for android setup instructions. Search for "Qt 6.10 android" on the internet to find the correct "Gettting Started with Qt for Android" page. Read it full and carefully! An example of what you are looking for is [here](https://doc.qt.io/qt-6/android-getting-started.html).
 
 2. Install Optional/OS-Specific Functionality
 
@@ -138,7 +137,7 @@ Example commands to build a default QGC and run it afterwards:
 2. Configure:
 
    ```sh
-   ~/Qt/6.8.3/gcc_64/bin/qt-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+   ~/Qt/{{ $frontmatter.qt_version }}/gcc_64/bin/qt-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
    ```
 
    Change the directory for qt-cmake to match your install location for Qt and the kit you want to use.

@@ -13,10 +13,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 import QGroundControl
-
 import QGroundControl.FactControls
 import QGroundControl.Controls
-
 
 SettingsPage {
     property var    _settingsManager:            QGroundControl.settingsManager
@@ -108,7 +106,7 @@ SettingsPage {
 
         LabelledFactComboBox {
             Layout.fillWidth:   true
-            label:              qsTr("Video decode priority")
+            label:              fact.shortDescription
             fact:               _videoSettings.forceVideoDecoder
             visible:            fact.visible
             indexModel:         false

@@ -14,11 +14,7 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 
 import QGroundControl
-
 import QGroundControl.Controls
-
-
-
 import QGroundControl.FactControls
 
 /// Joystick Config
@@ -80,7 +76,7 @@ SetupPage {
                     visible:    _allowJoystickSelection
                 }
                 QGCTabButton {
-                    text:       qsTr("Button Assigment")
+                    text:       qsTr("Button Assignment")
                 }
                 QGCTabButton {
                     text:       qsTr("Calibration")
@@ -103,5 +99,3 @@ SetupPage {
         }
     }
 }
-
-

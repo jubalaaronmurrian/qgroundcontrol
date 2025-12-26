@@ -14,6 +14,7 @@
 #include "QGCCommandLineParser.h"
 #include "QGCLogging.h"
 #include "Platform.h"
+#include "NTRIP.h"
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
     #include <QtWidgets/QMessageBox>
@@ -31,6 +32,15 @@
 
 int main(int argc, char *argv[])
 {
+#if 0
+    // Useful for debugging specific unit tests
+    char argument1[] = "--unittest:SimpleMissionItemTest";
+    char argument2[] = "--logging:FactSystem.ParameterManager,Utilities.QGCStateMachine";
+    char *newArgv[] = { argv[0], argument1, argument2 };
+    argc = 2;
+    argv = newArgv;
+#endif
+
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
     if (::getuid() == 0) {
         const QApplication errorApp(argc, argv);

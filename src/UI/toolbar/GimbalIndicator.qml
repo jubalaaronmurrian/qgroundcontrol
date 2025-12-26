@@ -13,7 +13,6 @@ import QtQuick.Layouts
 
 import QGroundControl
 import QGroundControl.Controls
-
 import QGroundControl.FactControls
 
 Item {
@@ -41,6 +40,8 @@ Item {
 
     property var _gimbalControllerSettings: QGroundControl.settingsManager.gimbalControllerSettings
 
+    QGCPalette { id: qgcPal }
+
     Row {
         id:             gimbalIndicatorRow
         anchors.top:    parent.top
@@ -60,7 +61,7 @@ Item {
                 source:                  "/gimbal/payload.png"
                 fillMode:                Image.PreserveAspectFit
                 sourceSize.height:       height
-                color:                   qgcPal.buttonText
+                color:                   qgcPal.windowTransparentText
 
             }
 
@@ -69,6 +70,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.pointSize:         ScreenTools.smallFontPointSize
                 text:                   activeGimbal ? activeGimbal.deviceId.rawValue : ""
+                color:                  qgcPal.windowTransparentText
                 visible:                multiGimbalSetup
             }
         }
@@ -84,25 +86,28 @@ Item {
             QGCLabel {
                 id:                     statusLabel
                 font.pointSize:         ScreenTools.smallFontPointSize
-                text:                   activeGimbal && activeGimbal.retracted ? 
+                text:                   activeGimbal && activeGimbal.retracted ?
                                             qsTr("Retracted") :
                                             (activeGimbal && activeGimbal.yawLock ? qsTr("Yaw locked") : qsTr("Yaw follow"))
+                color:                  qgcPal.windowTransparentText
                 Layout.columnSpan:      2
                 Layout.alignment:       Qt.AlignHCenter
             }
             QGCLabel {
                 id:             pitchLabel
                 font.pointSize: ScreenTools.smallFontPointSize
-                text:           activeGimbal ? qsTr("P: ") + activeGimbal.absolutePitch.rawValue.toFixed(1) : ""
+                text:           activeGimbal ? qsTr("P: ") + activeGimbal.absolutePitch.valueString : ""
+                color:          qgcPal.windowTransparentText
             }
             QGCLabel {
                 id:             panLabel
                 font.pointSize: ScreenTools.smallFontPointSize
                 text:           activeGimbal ?
                                     (showAzimuth ?
-                                        (qsTr("Az: ") + activeGimbal.absoluteYaw.rawValue.toFixed(1)) :
-                                        (qsTr("Y: ") + activeGimbal.bodyYaw.rawValue.toFixed(1))) :
+                                        (qsTr("Az: ") + activeGimbal.absoluteYaw.valueString) :
+                                        (qsTr("Y: ") + activeGimbal.bodyYaw.valueString)) :
                                     ""
+                color:          qgcPal.windowTransparentText
             }
         }
     }
@@ -265,6 +270,22 @@ Item {
                     fact:       _gimbalControllerSettings.CameraSlideSpeed
                     visible:    enableOnScreenControlCheckbox.checked && _gimbalControllerSettings.ControlType.rawValue === 1
                 }
+            }
+
+            SettingsGroupLayout {
+                heading:        qsTr("Zoom speed")
+                showDividers:   false
+
+                LabelledFactTextField {
+                    label:      qsTr("Max speed (min zoom)")
+                    fact:       _gimbalControllerSettings.zoomMaxSpeed
+                }
+
+                LabelledFactTextField {
+                    label:      qsTr("Min speed (max zoom)")
+                    fact:       _gimbalControllerSettings.zoomMinSpeed
+                }
+
             }
 
             SettingsGroupLayout {

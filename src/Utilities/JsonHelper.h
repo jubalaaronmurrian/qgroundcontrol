@@ -57,7 +57,6 @@ namespace JsonHelper
     /// Validates the standard parts of a internal QGC json file (FactMetaData, ...):
     ///     jsonFileTypeKey - Required and checked to be equal to expectedFileType
     ///     jsonVersionKey - Required and checked to be below supportedMajorVersion, supportedMinorVersion
-    ///     jsonGroundStationKey - Required and checked to be string type
     /// @return false: validation failed, errorString set
     bool validateInternalQGCJsonFile(const QJsonObject &jsonObject,      ///< json object to validate
                                      const QString &expectedFileType,    ///< correct file type for file
@@ -82,6 +81,7 @@ namespace JsonHelper
                               QString &errorString);         ///< returned error string if validation fails
 
     /// Validates the types of specified keys are in the object
+    ///     A Key type of JsonValue::Null indicates a double type which may be null which indicates NaN
     /// @return false: validation failed, errorString set
     bool validateKeyTypes(const QJsonObject &jsonObject,         ///< json object to validate
                           const QStringList &keys,               ///< keys to validate

@@ -24,7 +24,7 @@
 // Release languages are 90%+ complete
 QList<QLocale::Language> AppSettings::_rgReleaseLanguages = {
     QLocale::English,
-    QLocale::Azerbaijani,    
+    QLocale::Azerbaijani,
     QLocale::Chinese,
     QLocale::Japanese,
     QLocale::Korean,
@@ -65,28 +65,6 @@ DECLARE_SETTINGGROUP(App, "")
 {
     QGCPalette::setGlobalTheme(indoorPalette()->rawValue().toBool() ? QGCPalette::Dark : QGCPalette::Light);
 
-    QSettings settings;
-
-    // These two "type" keys were changed to "class" values
-    static const char* deprecatedFirmwareTypeKey    = "offlineEditingFirmwareType";
-    static const char* deprecatedVehicleTypeKey     = "offlineEditingVehicleType";
-    if (settings.contains(deprecatedFirmwareTypeKey)) {
-        settings.setValue(deprecatedFirmwareTypeKey, QGCMAVLink::firmwareClass(static_cast<MAV_AUTOPILOT>(settings.value(deprecatedFirmwareTypeKey).toInt())));
-    }
-    if (settings.contains(deprecatedVehicleTypeKey)) {
-        settings.setValue(deprecatedVehicleTypeKey, QGCMAVLink::vehicleClass(static_cast<MAV_TYPE>(settings.value(deprecatedVehicleTypeKey).toInt())));
-    }
-
-    QStringList deprecatedKeyNames  = { "virtualJoystickCentralized",           "offlineEditingFirmwareType",   "offlineEditingVehicleType" };
-    QStringList newKeyNames         = { "virtualJoystickAutoCenterThrottle",    "offlineEditingFirmwareClass",  "offlineEditingVehicleClass" };
-    settings.beginGroup(_settingsGroup);
-    for (int i=0; i<deprecatedKeyNames.count(); i++) {
-        if (settings.contains(deprecatedKeyNames[i])) {
-            settings.setValue(newKeyNames[i], settings.value(deprecatedKeyNames[i]));
-            settings.remove(deprecatedKeyNames[i]);
-        }
-    }
-
     // Instantiate savePath so we can check for override and setup default path if needed
 
     SettingsFact* savePathFact = qobject_cast<SettingsFact*>(savePath());
@@ -107,12 +85,12 @@ DECLARE_SETTINGGROUP(App, "")
     #else
         QString rootDirPath;
         #ifdef Q_OS_ANDROID
-        if (androidSaveToSDCard()->rawValue().toBool()) {
+            if (!androidDontSaveToSDCard()->rawValue().toBool()) {
                 rootDirPath = AndroidInterface::getSDCardPath();
-            qDebug() << "AndroidInterface::getSDCardPath();" << rootDirPath;
+                qDebug() << "AndroidInterface::getSDCardPath();" << rootDirPath;
                 if (rootDirPath.isEmpty() || !QDir(rootDirPath).exists()) {
                     rootDirPath.clear();
-                    qgcApp()->showAppMessage(AppSettings::tr("Save to SD card specified for application data. But no SD card present. Using internal storage."));
+                    qDebug() << "Save to SD card specified for application data. But no SD card present or permissions not granted. Using internal storage.";
                 } else if (!QFileInfo(rootDirPath).isWritable()) {
                     rootDirPath.clear();
                     qgcApp()->showAppMessage(AppSettings::tr("Save to SD card specified for application data. But SD card is write protected. Using internal storage."));
@@ -151,7 +129,7 @@ DECLARE_SETTINGSFACT(AppSettings, virtualJoystickAutoCenterThrottle)
 DECLARE_SETTINGSFACT(AppSettings, virtualJoystickLeftHandedMode)
 DECLARE_SETTINGSFACT(AppSettings, appFontPointSize)
 DECLARE_SETTINGSFACT(AppSettings, savePath)
-DECLARE_SETTINGSFACT(AppSettings, androidSaveToSDCard)
+DECLARE_SETTINGSFACT(AppSettings, androidDontSaveToSDCard)
 DECLARE_SETTINGSFACT(AppSettings, useChecklist)
 DECLARE_SETTINGSFACT(AppSettings, enforceChecklist)
 DECLARE_SETTINGSFACT(AppSettings, enableMultiVehiclePanel)
@@ -162,6 +140,7 @@ DECLARE_SETTINGSFACT(AppSettings, mapboxStyle)
 DECLARE_SETTINGSFACT(AppSettings, esriToken)
 DECLARE_SETTINGSFACT(AppSettings, customURL)
 DECLARE_SETTINGSFACT(AppSettings, vworldToken)
+DECLARE_SETTINGSFACT(AppSettings, openaipToken)
 DECLARE_SETTINGSFACT(AppSettings, gstDebugLevel)
 DECLARE_SETTINGSFACT(AppSettings, followTarget)
 DECLARE_SETTINGSFACT(AppSettings, disableAllPersistence)
@@ -242,7 +221,23 @@ void AppSettings::_checkSavePathDirectories(void)
         savePathDir.mkdir(photoDirectory);
         savePathDir.mkdir(crashDirectory);
         savePathDir.mkdir(mavlinkActionsDirectory);
+        savePathDir.mkdir(settingsDirectory);
     }
+}
+
+QString AppSettings::_childSavePath(const char* directory)
+{
+    const QString rootPath = savePath()->rawValue().toString();
+    if (rootPath.isEmpty()) {
+        return QString();
+    }
+
+    const QDir rootDir(rootPath);
+    if (!rootDir.exists()) {
+        return QString();
+    }
+
+    return rootDir.filePath(directory);
 }
 
 void AppSettings::_indoorPaletteChanged(void)
@@ -252,82 +247,47 @@ void AppSettings::_indoorPaletteChanged(void)
 
 QString AppSettings::missionSavePath(void)
 {
-    QString path = savePath()->rawValue().toString();
-    if (!path.isEmpty() && QDir(path).exists()) {
-        QDir dir(path);
-        return dir.filePath(missionDirectory);
-    }
-    return QString();
+    return _childSavePath(missionDirectory);
 }
 
 QString AppSettings::parameterSavePath(void)
 {
-    QString path = savePath()->rawValue().toString();
-    if (!path.isEmpty() && QDir(path).exists()) {
-        QDir dir(path);
-        return dir.filePath(parameterDirectory);
-    }
-    return QString();
+    return _childSavePath(parameterDirectory);
 }
 
 QString AppSettings::telemetrySavePath(void)
 {
-    QString path = savePath()->rawValue().toString();
-    if (!path.isEmpty() && QDir(path).exists()) {
-        QDir dir(path);
-        return dir.filePath(telemetryDirectory);
-    }
-    return QString();
+    return _childSavePath(telemetryDirectory);
 }
 
 QString AppSettings::logSavePath(void)
 {
-    QString path = savePath()->rawValue().toString();
-    if (!path.isEmpty() && QDir(path).exists()) {
-        QDir dir(path);
-        return dir.filePath(logDirectory);
-    }
-    return QString();
+    return _childSavePath(logDirectory);
 }
 
 QString AppSettings::videoSavePath(void)
 {
-    QString path = savePath()->rawValue().toString();
-    if (!path.isEmpty() && QDir(path).exists()) {
-        QDir dir(path);
-        return dir.filePath(videoDirectory);
-    }
-    return QString();
+    return _childSavePath(videoDirectory);
 }
 
 QString AppSettings::photoSavePath(void)
 {
-    QString path = savePath()->rawValue().toString();
-    if (!path.isEmpty() && QDir(path).exists()) {
-        QDir dir(path);
-        return dir.filePath(photoDirectory);
-    }
-    return QString();
+    return _childSavePath(photoDirectory);
 }
 
 QString AppSettings::crashSavePath(void)
 {
-    QString path = savePath()->rawValue().toString();
-    if (!path.isEmpty() && QDir(path).exists()) {
-        QDir dir(path);
-        return dir.filePath(crashDirectory);
-    }
-    return QString();
+    return _childSavePath(crashDirectory);
 }
 
 QString AppSettings::mavlinkActionsSavePath(void)
 {
-    QString path = savePath()->rawValue().toString();
-    if (!path.isEmpty() && QDir(path).exists()) {
-        QDir dir(path);
-        return dir.filePath(mavlinkActionsDirectory);
-    }
-    return QString();
+    return _childSavePath(mavlinkActionsDirectory);
+}
+
+QString AppSettings::settingsSavePath(void)
+{
+    return _childSavePath(settingsDirectory);
 }
 
 QList<int> AppSettings::firstRunPromptsIdsVariantToList(const QVariant& firstRunPromptIds)
@@ -361,9 +321,9 @@ void AppSettings::firstRunPromptIdsMarkIdAsShown(int id)
 }
 
 /// Returns the current qLocaleLanguage setting bypassing the standard SettingsGroup path. It also validates
-/// that the value is a supported language. This should only be used by QGCApplication::setLanguage to query 
-/// the language setting as early in the boot process as possible. Specfically prior to any JSON files being 
-/// loaded such that JSON file can be translated. Also since this is a one-off mechanism custom build overrides 
+/// that the value is a supported language. This should only be used by QGCApplication::setLanguage to query
+/// the language setting as early in the boot process as possible. Specfically prior to any JSON files being
+/// loaded such that JSON file can be translated. Also since this is a one-off mechanism custom build overrides
 /// for language are not currently supported.
 QLocale::Language AppSettings::_qLocaleLanguageEarlyAccess(void)
 {

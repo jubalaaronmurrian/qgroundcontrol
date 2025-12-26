@@ -178,6 +178,7 @@ find_package(Qt6
         TextToSpeech
         Widgets
         Xml
+        StateMachine
     OPTIONAL_COMPONENTS
         Bluetooth
         MultimediaQuickPrivate
@@ -196,6 +197,15 @@ qt_standard_project_setup(
     SUPPORTS_UP_TO ${QGC_QT_MAXIMUM_VERSION}
     I18N_SOURCE_LANGUAGE en
 )
+
+# ----------------------------------------------------------------------------
+# QML Linting Configuration
+# ----------------------------------------------------------------------------
+if(QGC_ENABLE_QMLLINT)
+    set(QT_QML_GENERATE_QMLLINT ON CACHE BOOL "Enable automatic QML linting" FORCE)
+else()
+    set(QT_QML_GENERATE_QMLLINT OFF CACHE BOOL "Disable automatic QML linting" FORCE)
+endif()
 
 # ----------------------------------------------------------------------------
 # Qt Policies (Enable modern Qt6 behaviors)
