@@ -60,6 +60,7 @@ SettingsPage {
     property var    gcsPosition:        QGroundControl.qgcPositionManger.gcsPosition
     property real   gcsHeading:         QGroundControl.qgcPositionManger.gcsHeading
     property real   gcsHDOP:            QGroundControl.qgcPositionManger.gcsPositionHorizontalAccuracy
+    property real gcsVerticalAccuracy:  QGroundControl.qgcPositionManger.gcsPositionVerticalAccuracy
     property string gpsDisabled:        "Disabled"
     property string gpsUdpPort:         "UDP Port"
 
@@ -489,6 +490,14 @@ SettingsPage {
                     id :                gcsPositionAltitudeLabel
                     label:              qsTr("GCS Altitude")
                     labelText:          gcsPosition.altitude
+                    visible:            labelText !== ""
+                    Layout.fillWidth:   true
+                }
+
+                LabelledLabel {
+                    id :                gcsPositionVerticalAccuracyLabel
+                    label:              qsTr("GCS Vertical Accuracy")
+                    labelText:          gcsVerticalAccuracy
                     visible:            labelText !== ""
                     Layout.fillWidth:   true
                 }

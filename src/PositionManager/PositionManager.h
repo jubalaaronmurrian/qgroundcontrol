@@ -43,6 +43,7 @@ public:
     QGeoCoordinate gcsPosition() const { return _gcsPosition; }
     qreal gcsHeading() const { return _gcsHeading; }
     qreal gcsPositionHorizontalAccuracy() const { return _gcsPositionHorizontalAccuracy; }
+    qreal gcsPositionVerticalAccuracy() const {return _gcsPositionVerticalAccuracy;}
     QGeoPositionInfo geoPositionInfo() const { return _geoPositionInfo; }
     int updateInterval() const { return _updateInterval; }
 
