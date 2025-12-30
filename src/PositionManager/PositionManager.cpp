@@ -129,6 +129,7 @@ void QGCPositionManager::_positionUpdated(const QGeoPositionInfo &update)
         }
     }
 
+    //https://github.com/ArduPilot/ardupilot/blob/master/libraries/AP_OpenDroneID/AP_OpenDroneID.cpp
     if (update.hasAttribute(QGeoPositionInfo::VerticalAccuracy)) {
         _gcsPositionVerticalAccuracy = update.attribute(QGeoPositionInfo::VerticalAccuracy);
         if (_gcsPositionVerticalAccuracy <= kMinVerticalAccuracyMeters) {
