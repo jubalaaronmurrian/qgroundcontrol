@@ -294,12 +294,30 @@ void RemoteIDManager::_sendSystem()
         gcsPosition = QGCPositionManager::instance()->gcsPosition();
         geoPositionInfo = QGCPositionManager::instance()->geoPositionInfo();
 
+        //https://github.com/ArduPilot/ardupilot/blob/master/libraries/AP_OpenDroneID/AP_OpenDroneID.cpp
         // GPS position needs to be valid before checking other stuff
         if (geoPositionInfo.isValid()) {
+            // If we dont have altitude for FAA then the GPS data is no good
+            if ((_settings->region()->rawValue().toInt() == Region::FAA) && !(gcsPosition.altitude() >= 0) && _gcsGPSGood) {
+                _gcsGPSGood = false;
+                emit gcsGPSGoodChanged();
+                qCDebug(RemoteIDManagerLog) << "GCS GPS data error (no altitude): Altitude data is mandatory for GCS GPS data in FAA regions.";
+                return;
+            }
+
+            // If the GPS data is older than ALLOWED_GPS_DELAY we cannot use this data
+            if (_lastGeoPositionTimeStamp.msecsTo(QDateTime::currentDateTime().currentDateTimeUtc()) > ALLOWED_GPS_DELAY) {
+                if (_gcsGPSGood) {
+                    _gcsGPSGood = false;
+                    emit gcsGPSGoodChanged();
+                    qCDebug(RemoteIDManagerLog) << "GCS GPS data is older than 5 seconds";
+                }
+            } else {
                 if (!_gcsGPSGood) {
                     _gcsGPSGood = true;
                     emit gcsGPSGoodChanged();
                 }
+            }
         } else {
             _gcsGPSGood = false;
             emit gcsGPSGoodChanged();
