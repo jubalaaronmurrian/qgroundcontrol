@@ -217,5 +217,13 @@ SettingsPage {
             visible:            _lockNoseUpCompass.visible
             fact:               _lockNoseUpCompass
         }
+
+        FactCheckBoxSlider{
+                    Layout.fillWidth: true
+                    text: qsTr("Top Right Corner")
+                    visible: _instrumentPanelTop.visible
+                    fact: _instrumentPanelTop
+        }
+
     }
 }
