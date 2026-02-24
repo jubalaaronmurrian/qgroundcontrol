@@ -1,12 +1,3 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -28,7 +19,7 @@ Item {
     property var    gimbals:                    gimbalController.gimbals
     property var    activeGimbal:               gimbalController.activeGimbal
     property var    multiGimbalSetup:           gimbalController.gimbals.count > 1
-    property bool   joystickButtonsAvailable:   activeVehicle.joystickEnabled
+    property bool   joystickButtonsAvailable:   activeVehicle ? joystickManager.activeJoystickEnabledForActiveVehicle : false
     property bool   showAzimuth:                QGroundControl.settingsManager.gimbalControllerSettings.toolbarIndicatorShowAzimuth.rawValue
 
     property var    margins:                    ScreenTools.defaultFontPixelWidth
@@ -58,7 +49,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width:                   height
                 height:                  multiGimbalSetup ? parent.height - gimbalIdLabel.contentHeight : parent.height
-                source:                  "/gimbal/payload.png"
+                source:                  "/res/CameraGimbal.png"
                 fillMode:                Image.PreserveAspectFit
                 sourceSize.height:       height
                 color:                   qgcPal.windowTransparentText
@@ -323,7 +314,8 @@ Item {
         function onShowAcquireGimbalControlPopup() {
             if(!acquirePopupConnection.isPopupOpen){
                 acquirePopupConnection.isPopupOpen = true;
-                mainWindow.showMessageDialog(
+                QGroundControl.showMessageDialog(
+                    control,
                     "Request Gimbal Control?",
                     "Command not sent. Another user has control of the gimbal.",
                     Dialog.Yes | Dialog.No,

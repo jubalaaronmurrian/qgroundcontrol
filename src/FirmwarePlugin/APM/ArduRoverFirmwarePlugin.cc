@@ -1,12 +1,3 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #include "ArduRoverFirmwarePlugin.h"
 #include "QGCApplication.h"
 #include "Vehicle.h"
@@ -39,7 +30,7 @@ ArduRoverFirmwarePlugin::ArduRoverFirmwarePlugin(QObject *parent)
         // Mode Name              , Custom Mode                CanBeSet  adv
         { _manualFlightMode       , APMRoverMode::MANUAL       , true , true},
         { _acroFlightMode         , APMRoverMode::ACRO         , true , true},
-        { _learningFlightMode     , APMRoverMode::LEARNING     , true , true},
+        { _learningFlightMode     , APMRoverMode::LEARNING     , false, true},
         { _steeringFlightMode     , APMRoverMode::STEERING     , true , true},
         { _holdFlightMode         , APMRoverMode::HOLD         , true , true},
         { _loiterFlightMode       , APMRoverMode::LOITER       , true , true},
@@ -51,7 +42,7 @@ ArduRoverFirmwarePlugin::ArduRoverFirmwarePlugin(QObject *parent)
         { _rtlFlightMode          , APMRoverMode::RTL          , true , true},
         { _smartRtlFlightMode     , APMRoverMode::SMART_RTL    , true , true},
         { _guidedFlightMode       , APMRoverMode::GUIDED       , true , true},
-        { _initializingFlightMode , APMRoverMode::INITIALIZING , true , true},
+        { _initializingFlightMode , APMRoverMode::INITIALIZING , false, true},
     };
     updateAvailableFlightModes(availableFlightModes);
 
@@ -65,7 +56,7 @@ ArduRoverFirmwarePlugin::~ArduRoverFirmwarePlugin()
 
 }
 
-int ArduRoverFirmwarePlugin::remapParamNameHigestMinorVersionNumber(int majorVersionNumber) const
+int ArduRoverFirmwarePlugin::remapParamNameHigestMinorVersionNumber(int /*majorVersionNumber*/) const
 {
     // Remapping not supported
     return Vehicle::versionNotSetValue;

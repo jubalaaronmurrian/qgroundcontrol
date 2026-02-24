@@ -1,12 +1,3 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
 
 #include <QtCore/QLoggingCategory>
@@ -69,6 +60,7 @@ public slots:
     void gimbalYawStop();
 
 private slots:
+    void _initialConnectCompleted();
     void _mavlinkMessageReceived(const mavlink_message_t& message);
     void _rateSenderTimeout();
 
@@ -124,6 +116,7 @@ private:
 
     QMap<GimbalPairId, Gimbal*> _potentialGimbals;
     QmlObjectListModel *_gimbals = nullptr;
+    bool _initialConnectComplete = false;
 
     static constexpr const char *_gimbalFactGroupNamePrefix = "gimbal";
 };

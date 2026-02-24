@@ -1,12 +1,3 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #pragma once
 
 #include <QtCore/QObject>
@@ -91,7 +82,7 @@ private:
 
     // Self ID
     void        _sendSelfIDMsg ();
-    const char* _getSelfIDDescription();
+    QByteArray _getSelfIDDescription() const;
 
     // Operator ID
     void        _sendOperatorID ();

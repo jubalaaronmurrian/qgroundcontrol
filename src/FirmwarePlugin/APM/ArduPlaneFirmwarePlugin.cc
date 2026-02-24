@@ -1,12 +1,3 @@
-/****************************************************************************
- *
- * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
- *
- * QGroundControl is licensed according to the terms in the file
- * COPYING.md in the root of the source code directory.
- *
- ****************************************************************************/
-
 #include "ArduPlaneFirmwarePlugin.h"
 #include "Vehicle.h"
 
@@ -63,7 +54,7 @@ ArduPlaneFirmwarePlugin::ArduPlaneFirmwarePlugin(QObject *parent)
         { _takeoffFlightMode      , APMPlaneMode::TAKEOFF       , true , true },
         { _avoidADSBFlightMode    , APMPlaneMode::AVOID_ADSB    , true , true },
         { _guidedFlightMode       , APMPlaneMode::GUIDED        , true , true },
-        { _initializingFlightMode , APMPlaneMode::INITIALIZING  , true , true },
+        { _initializingFlightMode , APMPlaneMode::INITIALIZING  , false, true },
         { _qStabilizeFlightMode   , APMPlaneMode::QSTABILIZE    , true , true },
         { _qHoverFlightMode       , APMPlaneMode::QHOVER        , true , true },
         { _qLoiterFlightMode      , APMPlaneMode::QLOITER       , true , true },
