@@ -13,8 +13,6 @@ target_sources(${CMAKE_PROJECT_NAME}
         AutoConnectSettings.h
         BatteryIndicatorSettings.cc
         BatteryIndicatorSettings.h
-        BrandImageSettings.cc
-        BrandImageSettings.h
         MavlinkActionsSettings.cc
         MavlinkActionsSettings.h
         FirmwareUpgradeSettings.cc
@@ -25,12 +23,18 @@ target_sources(${CMAKE_PROJECT_NAME}
         FlightModeSettings.h
         FlyViewSettings.cc
         FlyViewSettings.h
+        GeoViewSettings.cc
+        GeoViewSettings.h
         GimbalControllerSettings.cc
         GimbalControllerSettings.h
         JoystickManagerSettings.cc
         JoystickManagerSettings.h
         JoystickSettings.cc
         JoystickSettings.h
+        LogManagerSettings.cc
+        LogManagerSettings.h
+        LogViewerSettings.cc
+        LogViewerSettings.h
         MavlinkSettings.cc
         MavlinkSettings.h
         OfflineMapsSettings.cc
@@ -60,21 +64,15 @@ target_sources(${CMAKE_PROJECT_NAME}
 # ----------------------------------------------------------------------------
 # APM-Specific Settings
 # ----------------------------------------------------------------------------
-if(NOT QGC_DISABLE_APM_MAVLINK)
-    target_sources(${CMAKE_PROJECT_NAME}
-        PRIVATE
-            APMMavlinkStreamRateSettings.cc
-            APMMavlinkStreamRateSettings.h
-    )
-endif()
+target_sources(${CMAKE_PROJECT_NAME}
+    PRIVATE
+        APMMavlinkStreamRateSettings.cc
+        APMMavlinkStreamRateSettings.h
+)
 
 # ----------------------------------------------------------------------------
 # Settings Definition Resources
 # ----------------------------------------------------------------------------
-file(GLOB_RECURSE JSON_SETTINGS_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*.json)
-qt_add_resources(${CMAKE_PROJECT_NAME} json_app_settings
-    PREFIX "/json"
-    FILES ${JSON_SETTINGS_FILES}
-)
+qgc_add_json_resources(json_app_settings)
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

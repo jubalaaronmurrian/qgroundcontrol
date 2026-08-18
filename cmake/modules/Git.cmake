@@ -3,17 +3,21 @@
 # Extracts version information and metadata from Git repository
 # ----------------------------------------------------------------------------
 
+include_guard(GLOBAL)
+
 find_package(Git QUIET)
 
 if(NOT GIT_FOUND OR NOT EXISTS "${CMAKE_SOURCE_DIR}/.git")
     message(WARNING "QGC: Git not found or not a git repository. Using fallback version info.")
     set(QGC_GIT_BRANCH "unknown")
     set(QGC_GIT_HASH "0000000")
+    set(QGC_GIT_DIRTY FALSE)
     set(QGC_APP_VERSION_STR "v0.0.0")
     set(QGC_APP_VERSION "0.0.0")
     set(QGC_APP_VERSION_MAJOR "0")
     set(QGC_APP_VERSION_MINOR "0")
     set(QGC_APP_VERSION_PATCH "0")
+    set(QGC_APP_VERSION_DEV "0")
     string(TIMESTAMP QGC_APP_DATE "%Y-%m-%dT%H:%M:%S%z" UTC)
     configure_file(
         "${CMAKE_SOURCE_DIR}/src/qgc_version.h.in"
@@ -37,43 +41,47 @@ if(GIT_SUBMODULE)
     if(NOT GIT_SUBMODULE_RESULT EQUAL 0)
         include(CMakePrintHelpers)
         cmake_print_variables(GIT_SUBMODULE_RESULT GIT_SUBMODULE_OUTPUT GIT_SUBMODULE_ERROR)
-        message(FATAL_ERROR "Git submodule update failed with code ${GIT_SUBMODULE_RESULT}")
+        message(FATAL_ERROR "QGC: Git submodule update failed with code ${GIT_SUBMODULE_RESULT}")
     endif()
     message(STATUS "Git submodules updated successfully")
 endif()
 
-include(CMakePrintHelpers)
-
 # ----------------------------------------------------------------------------
-# Extract Git Branch
+# Extract Git Branch and Commit Hash
 # ----------------------------------------------------------------------------
 
 execute_process(
-    COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref @
+    COMMAND ${GIT_EXECUTABLE} log -1 --format=%D%n%h
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    OUTPUT_VARIABLE QGC_GIT_BRANCH
+    OUTPUT_VARIABLE _git_info
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET
 )
-if(NOT QGC_GIT_BRANCH)
+if(_git_info)
+    string(REGEX REPLACE "\n.*" "" _git_refs "${_git_info}")
+    string(REGEX REPLACE ".*\n" "" QGC_GIT_HASH "${_git_info}")
+    # Extract branch from refs: "HEAD -> branch, origin/branch" → "branch"
+    if(_git_refs MATCHES "HEAD -> ([^,]+)")
+        set(QGC_GIT_BRANCH "${CMAKE_MATCH_1}")
+    else()
+        set(QGC_GIT_BRANCH "HEAD")
+    endif()
+else()
     set(QGC_GIT_BRANCH "unknown")
-endif()
-# cmake_print_variables(QGC_GIT_BRANCH)
-
-# ----------------------------------------------------------------------------
-# Extract Git Commit Hash
-# ----------------------------------------------------------------------------
-execute_process(
-    COMMAND ${GIT_EXECUTABLE} rev-parse --short @
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    OUTPUT_VARIABLE QGC_GIT_HASH
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_QUIET
-)
-if(NOT QGC_GIT_HASH)
     set(QGC_GIT_HASH "0000000")
 endif()
-# cmake_print_variables(QGC_GIT_HASH)
+
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} diff-index --quiet HEAD --
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    RESULT_VARIABLE _git_dirty_result
+    ERROR_QUIET
+)
+if(_git_dirty_result EQUAL 0)
+    set(QGC_GIT_DIRTY FALSE)
+else()
+    set(QGC_GIT_DIRTY TRUE)
+endif()
 
 # ----------------------------------------------------------------------------
 # Extract Version String from Git Tags
@@ -90,11 +98,19 @@ if(NOT QGC_APP_VERSION_STR)
 endif()
 # cmake_print_variables(QGC_APP_VERSION_STR)
 
+# Commits since the nearest tag (git describe "-<N>-g<sha>" suffix; 0 on a tag).
+# Feeds the Android versionCode Dev field so daily builds get unique codes.
+if(QGC_APP_VERSION_STR MATCHES "-([0-9]+)-g[0-9a-f]+$")
+    set(QGC_APP_VERSION_DEV "${CMAKE_MATCH_1}")
+else()
+    set(QGC_APP_VERSION_DEV "0")
+endif()
+
 # ----------------------------------------------------------------------------
 # Extract Clean Version Tag
 # ----------------------------------------------------------------------------
 execute_process(
-    COMMAND ${GIT_EXECUTABLE} describe --always --abbrev=0
+    COMMAND ${GIT_EXECUTABLE} describe --always --tags --abbrev=0
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE QGC_APP_VERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE

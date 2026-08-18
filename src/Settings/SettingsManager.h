@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QtCore/QLoggingCategory>
 #include <QtCore/QObject>
 #include <QtQmlIntegration/QtQmlIntegration>
 #include <QtCore/QJsonObject>
@@ -11,12 +10,12 @@ class APMMavlinkStreamRateSettings;
 class AppSettings;
 class AutoConnectSettings;
 class BatteryIndicatorSettings;
-class BrandImageSettings;
 class MavlinkActionsSettings;
 class FirmwareUpgradeSettings;
 class FlightMapSettings;
 class FlightModeSettings;
 class FlyViewSettings;
+class GeoViewSettings;
 class GimbalControllerSettings;
 class MapsSettings;
 class OfflineMapsSettings;
@@ -30,28 +29,27 @@ class Viewer3DSettings;
 class MavlinkSettings;
 class FactMetaData;
 class JoystickManagerSettings;
+class LogManagerSettings;
+class LogViewerSettings;
 
-Q_DECLARE_LOGGING_CATEGORY(SettingsManagerLog)
-
-/// Provides access to all app settings
+/// \brief Provides access to all app settings
+///
 class SettingsManager : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("")
     Q_MOC_INCLUDE("ADSBVehicleManagerSettings.h")
-#ifndef QGC_NO_ARDUPILOT_DIALECT
     Q_MOC_INCLUDE("APMMavlinkStreamRateSettings.h")
-#endif
     Q_MOC_INCLUDE("AppSettings.h")
     Q_MOC_INCLUDE("AutoConnectSettings.h")
     Q_MOC_INCLUDE("BatteryIndicatorSettings.h")
-    Q_MOC_INCLUDE("BrandImageSettings.h")
     Q_MOC_INCLUDE("MavlinkActionsSettings.h")
     Q_MOC_INCLUDE("FirmwareUpgradeSettings.h")
     Q_MOC_INCLUDE("FlightMapSettings.h")
     Q_MOC_INCLUDE("FlightModeSettings.h")
     Q_MOC_INCLUDE("FlyViewSettings.h")
+    Q_MOC_INCLUDE("GeoViewSettings.h")
     Q_MOC_INCLUDE("GimbalControllerSettings.h")
     Q_MOC_INCLUDE("MapsSettings.h")
     Q_MOC_INCLUDE("OfflineMapsSettings.h")
@@ -63,20 +61,20 @@ class SettingsManager : public QObject
     Q_MOC_INCLUDE("VideoSettings.h")
     Q_MOC_INCLUDE("MavlinkSettings.h")
     Q_MOC_INCLUDE("JoystickManagerSettings.h")
+    Q_MOC_INCLUDE("LogManagerSettings.h")
+    Q_MOC_INCLUDE("LogViewerSettings.h")
     Q_MOC_INCLUDE("Viewer3DSettings.h")
     Q_PROPERTY(QObject *adsbVehicleManagerSettings      READ adsbVehicleManagerSettings     CONSTANT)
-#ifndef QGC_NO_ARDUPILOT_DIALECT
     Q_PROPERTY(QObject *apmMavlinkStreamRateSettings    READ apmMavlinkStreamRateSettings   CONSTANT)
-#endif
     Q_PROPERTY(QObject *appSettings                     READ appSettings                    CONSTANT)
     Q_PROPERTY(QObject *autoConnectSettings             READ autoConnectSettings            CONSTANT)
     Q_PROPERTY(QObject *batteryIndicatorSettings        READ batteryIndicatorSettings       CONSTANT)
-    Q_PROPERTY(QObject *brandImageSettings              READ brandImageSettings             CONSTANT)
     Q_PROPERTY(QObject *mavlinkActionsSettings    READ mavlinkActionsSettings   CONSTANT)
     Q_PROPERTY(QObject *firmwareUpgradeSettings         READ firmwareUpgradeSettings        CONSTANT)
     Q_PROPERTY(QObject *flightMapSettings               READ flightMapSettings              CONSTANT)
     Q_PROPERTY(QObject *flightModeSettings              READ flightModeSettings             CONSTANT)
     Q_PROPERTY(QObject *flyViewSettings                 READ flyViewSettings                CONSTANT)
+    Q_PROPERTY(QObject *geoViewSettings                 READ geoViewSettings                CONSTANT)
     Q_PROPERTY(QObject *gimbalControllerSettings        READ gimbalControllerSettings       CONSTANT)
     Q_PROPERTY(QObject *mapsSettings                    READ mapsSettings                   CONSTANT)
     Q_PROPERTY(QObject *offlineMapsSettings             READ offlineMapsSettings            CONSTANT)
@@ -88,35 +86,34 @@ class SettingsManager : public QObject
     Q_PROPERTY(QObject *videoSettings                   READ videoSettings                  CONSTANT)
     Q_PROPERTY(QObject *mavlinkSettings                 READ mavlinkSettings                CONSTANT)
     Q_PROPERTY(QObject *joystickManagerSettings         READ joystickManagerSettings        CONSTANT)
+    Q_PROPERTY(QObject *logManagerSettings              READ logManagerSettings              CONSTANT)
+    Q_PROPERTY(QObject *logViewerSettings               READ logViewerSettings               CONSTANT)
     Q_PROPERTY(QObject *viewer3DSettings                READ viewer3DSettings               CONSTANT)
 public:
     SettingsManager(QObject *parent = nullptr);
     ~SettingsManager();
 
     static SettingsManager *instance();
-    static void registerQmlTypes();
 
     void init();
 
     /// Allows for overriding the meta data before the fact is created.
     ///     @param settingsGroup - QSettings group which contains this item
     ///     @param metaData - MetaData for setting fact
-    ///     @param visible - true: Setting should be visible in ui, false: Setting should not be shown in ui (default value will be used as value)
-    static void adjustSettingMetaData(const QString &settingsGroup, FactMetaData &metaData, bool &visible);
+    ///     @param userVisible - true: Setting should be visible in ui, false: Setting should not be shown in ui (default value will be used as value)
+    static void adjustSettingMetaData(const QString &settingsGroup, FactMetaData &metaData, bool &userVisible);
 
     ADSBVehicleManagerSettings *adsbVehicleManagerSettings() const;
-#ifndef QGC_NO_ARDUPILOT_DIALECT
     APMMavlinkStreamRateSettings *apmMavlinkStreamRateSettings() const;
-#endif
     AppSettings *appSettings() const;
     AutoConnectSettings *autoConnectSettings() const;
     BatteryIndicatorSettings *batteryIndicatorSettings() const;
-    BrandImageSettings *brandImageSettings() const;
     MavlinkActionsSettings *mavlinkActionsSettings() const;
     FirmwareUpgradeSettings *firmwareUpgradeSettings() const;
     FlightMapSettings *flightMapSettings() const;
     FlightModeSettings *flightModeSettings() const;
     FlyViewSettings *flyViewSettings() const;
+    GeoViewSettings *geoViewSettings() const;
     GimbalControllerSettings *gimbalControllerSettings() const;
     MapsSettings *mapsSettings() const;
     OfflineMapsSettings *offlineMapsSettings() const;
@@ -128,24 +125,24 @@ public:
     VideoSettings *videoSettings() const;
     MavlinkSettings *mavlinkSettings() const;
     JoystickManagerSettings *joystickManagerSettings() const;
+    LogManagerSettings *logManagerSettings() const;
+    LogViewerSettings *logViewerSettings() const;
     Viewer3DSettings *viewer3DSettings() const;
 
 private:
     void _loadSettingsFiles();
 
     ADSBVehicleManagerSettings *_adsbVehicleManagerSettings = nullptr;
-#ifndef QGC_NO_ARDUPILOT_DIALECT
     APMMavlinkStreamRateSettings *_apmMavlinkStreamRateSettings = nullptr;
-#endif
     AppSettings *_appSettings = nullptr;
     AutoConnectSettings *_autoConnectSettings = nullptr;
     BatteryIndicatorSettings *_batteryIndicatorSettings = nullptr;
-    BrandImageSettings *_brandImageSettings = nullptr;
     MavlinkActionsSettings *_mavlinkActionsSettings = nullptr;
     FirmwareUpgradeSettings *_firmwareUpgradeSettings = nullptr;
     FlightMapSettings *_flightMapSettings = nullptr;
     FlightModeSettings *_flightModeSettings = nullptr;
     FlyViewSettings *_flyViewSettings = nullptr;
+    GeoViewSettings *_geoViewSettings = nullptr;
     GimbalControllerSettings *_gimbalControllerSettings = nullptr;
     MapsSettings *_mapsSettings = nullptr;
     OfflineMapsSettings *_offlineMapsSettings = nullptr;
@@ -157,6 +154,8 @@ private:
     VideoSettings *_videoSettings = nullptr;
     MavlinkSettings *_mavlinkSettings = nullptr;
     JoystickManagerSettings *_joystickManagerSettings = nullptr;
+    LogManagerSettings *_logManagerSettings = nullptr;
+    LogViewerSettings *_logViewerSettings = nullptr;
     Viewer3DSettings *_viewer3DSettings = nullptr;
 
     QMap<QString, QMap<QString, QJsonObject>> _settingsFileOverrides;   // groupName:settingName:metaDataObject

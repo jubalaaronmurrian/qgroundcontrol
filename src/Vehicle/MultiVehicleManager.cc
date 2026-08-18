@@ -1,6 +1,6 @@
 #include "MultiVehicleManager.h"
 #include "MAVLinkProtocol.h"
-#include "QGCApplication.h"
+#include "AppMessages.h"
 #include "ParameterManager.h"
 #include "SettingsManager.h"
 #include "MavlinkSettings.h"
@@ -33,8 +33,6 @@ MultiVehicleManager::MultiVehicleManager(QObject *parent)
     , _selectedVehicles(new QmlObjectListModel(this))
 {
     qCDebug(MultiVehicleManagerLog) << this;
-
-    (void) qRegisterMetaType<Vehicle::MavCmdResultFailureCode_t>("MavCmdResultFailureCode_t");
 }
 
 MultiVehicleManager::~MultiVehicleManager()
@@ -78,14 +76,12 @@ void MultiVehicleManager::_vehicleHeartbeatInfo(LinkInterface* link, int vehicle
         return;
     }
 
-#ifndef QGC_NO_ARDUPILOT_DIALECT
     // When you flash a new ArduCopter it does not set a FRAME_CLASS for some reason. This is the only ArduPilot variant which
     // works this way. Because of this the vehicle type is not known at first connection. In order to make QGC work reasonably
     // we assume ArduCopter for this case.
     if ((vehicleType == MAV_TYPE_GENERIC) && (vehicleFirmwareType == MAV_AUTOPILOT_ARDUPILOTMEGA)) {
         vehicleType = MAV_TYPE_QUADROTOR;
     }
-#endif
 
     switch (vehicleType) {
     case MAV_TYPE_GCS:
@@ -114,7 +110,7 @@ void MultiVehicleManager::_vehicleHeartbeatInfo(LinkInterface* link, int vehicle
                                     << vehicleType;
 
     if (vehicleId == MAVLinkProtocol::instance()->getSystemId()) {
-        qgcApp()->showAppMessage(tr("Warning: A vehicle is using the same system id as %1: %2").arg(QCoreApplication::applicationName()).arg(vehicleId));
+        QGC::showAppMessage(tr("Warning: A vehicle is using the same system id as %1: %2").arg(QCoreApplication::applicationName()).arg(vehicleId));
     }
 
     Vehicle *const vehicle = new Vehicle(link, vehicleId, componentId, (MAV_AUTOPILOT)vehicleFirmwareType, (MAV_TYPE)vehicleType, this);
@@ -131,7 +127,7 @@ void MultiVehicleManager::_vehicleHeartbeatInfo(LinkInterface* link, int vehicle
     emit vehicleAdded(vehicle);
 
     if (_vehicles->count() > 1) {
-        qgcApp()->showAppMessage(tr("Connected to Vehicle %1").arg(vehicleId));
+        QGC::showAppMessage(tr("Connected to Vehicle %1").arg(vehicleId));
     } else {
         setActiveVehicle(vehicle);
     }
@@ -296,9 +292,7 @@ void MultiVehicleManager::_sendGCSHeartbeat()
             MAV_STATE_ACTIVE
         );
 
-        uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
-        const uint16_t len = mavlink_msg_to_send_buffer(buffer, &message);
-        (void) link->writeBytesThreadSafe(reinterpret_cast<const char*>(buffer), len);
+        link->sendMessageThreadSafe(message);
     }
 }
 

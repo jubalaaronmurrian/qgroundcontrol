@@ -1,6 +1,9 @@
 #include "QGCMapUrlEngine.h"
 
+#include "QGCTileSet.h"
+
 #include <QtCore/QtMinMax>
+#include <QtCore/QUrl>
 
 #include "BingMapProvider.h"
 #include "ElevationMapProvider.h"
@@ -67,8 +70,8 @@ const QList<SharedMapProvider> UrlFactory::_providers = {
 
     std::make_shared<CustomURLMapProvider>(),
 
-    std::make_shared<CopernicusElevationProvider>()
-};
+    std::make_shared<CopernicusElevationProvider>(),
+    std::make_shared<TerrariumElevationProvider>()};
 
 QString UrlFactory::getImageFormat(int qtMapId, QByteArrayView image)
 {

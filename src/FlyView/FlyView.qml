@@ -12,12 +12,14 @@ import QGroundControl
 import QGroundControl.Controls
 import QGroundControl.FlyView
 import QGroundControl.FlightMap
+import QGroundControl.Toolbar
 import QGroundControl.Viewer3D
 
 Item {
     id: _root
 
-    readonly property bool _is3DMode: QGCViewer3DManager.displayMode === QGCViewer3DManager.View3D
+    readonly property bool _is3DMode:       QGCViewer3DManager.displayMode === QGCViewer3DManager.View3D
+    readonly property bool _keepSceneAlive: QGroundControl.settingsManager.viewer3DSettings.keepSceneAlive.rawValue
 
     // These should only be used by MainRootWindow
     property var planController:    _planController
@@ -72,6 +74,7 @@ Item {
 
         FlyViewMap {
             id:                     mapControl
+            objectName:             "flyViewMap"
             planMasterController:   _planController
             rightPanelWidth:        ScreenTools.defaultFontPixelHeight * 9
             pipView:                _pipView
@@ -114,6 +117,7 @@ Item {
             z:                      _fullItemZorder + 2
             parentToolInsets:       _toolInsets
             mapControl:             _mapControl
+            viewer3DCameraController: viewer3DLoader.item ? viewer3DLoader.item.cameraController : null
             visible:                !QGroundControl.videoManager.fullScreen
         }
 
@@ -147,6 +151,7 @@ Item {
         //-- Guided value slider (e.g. altitude)
         GuidedValueSlider {
             id:                 guidedValueSlider
+            objectName:         "guidedValueSlider"
             anchors.right:      parent.right
             anchors.top:        parent.top
             anchors.bottom:     parent.bottom
@@ -156,15 +161,21 @@ Item {
         }
 
         Loader {
-            id:             viewer3DLoader
-            z:              1
-            anchors.fill:   parent
-            active:         _is3DMode
+            id:           viewer3DLoader
+            z:            1
+            anchors.fill: parent
+            visible:      _is3DMode
+        }
 
-            onActiveChanged: {
-                if (active) {
-                    setSource("qrc:/qml/QGroundControl/Viewer3D/Models3D/Viewer3DModel.qml",
-)
+        Connections {
+            target: QGCViewer3DManager
+            function onDisplayModeChanged() {
+                if (QGCViewer3DManager.displayMode === QGCViewer3DManager.View3D) {
+                    if (!viewer3DLoader.item) {
+                        viewer3DLoader.setSource("qrc:/qml/QGroundControl/Viewer3D/Models3D/Viewer3DModel.qml")
+                    }
+                } else if (!_keepSceneAlive) {
+                    viewer3DLoader.source = ""
                 }
             }
         }

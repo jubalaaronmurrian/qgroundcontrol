@@ -11,12 +11,13 @@
 
 #include "ElevationMapProvider.h"
 #include "FlightMapSettings.h"
-#include "QGCApplication.h"
 #include "QGCCachedTileSet.h"
+#include "QGCFormat.h"
 #include "QGCCompression.h"
 #include "QGCCompressionJob.h"
 #include "QGCLoggingCategory.h"
 #include "QGCMapEngine.h"
+#include "QGCMapTasks.h"
 #include "QGCMapUrlEngine.h"
 #include "QGeoFileTileCacheQGC.h"
 #include "QmlObjectListModel.h"
@@ -82,12 +83,12 @@ void QGCMapEngineManager::updateForCurrentView(double lon0, double lat0, double 
 
 QString QGCMapEngineManager::tileCountStr() const
 {
-    return qgcApp()->numberToString(_imageSet.tileCount + _elevationSet.tileCount);
+    return QGC::numberToString(_imageSet.tileCount + _elevationSet.tileCount);
 }
 
 QString QGCMapEngineManager::tileSizeStr() const
 {
-    return qgcApp()->bigSizeToString(_imageSet.tileSize + _elevationSet.tileSize);
+    return QGC::bigSizeToString(_imageSet.tileSize + _elevationSet.tileSize);
 }
 
 void QGCMapEngineManager::loadTileSets()
@@ -463,7 +464,9 @@ QStringList QGCMapEngineManager::mapList()
 QStringList QGCMapEngineManager::mapProviderList()
 {
     QStringList mapStringList = mapList();
-    const QStringList elevationStringList = elevationProviderList();
+    // Subtract ALL elevation providers (not just user-selectable ones) so
+    // hidden elevation providers don't leak into the imagery provider list
+    const QStringList elevationStringList = UrlFactory::getElevationProviderTypes();
     for (const QString &elevationProviderName : elevationStringList) {
         (void) mapStringList.removeAll(elevationProviderName);
     }
@@ -477,7 +480,16 @@ QStringList QGCMapEngineManager::mapProviderList()
 
 QStringList QGCMapEngineManager::elevationProviderList()
 {
-    return UrlFactory::getElevationProviderTypes();
+    // User-facing list only: hidden providers (e.g. Terrarium, GeoMap-only) are
+    // still registered for cache/fetch but must not be selectable as the app's
+    // elevation provider
+    QStringList types;
+    for (const SharedMapProvider& provider : UrlFactory::getProviders()) {
+        if (provider->isElevationProvider() && provider->isUserSelectable()) {
+            types.append(provider->getMapName());
+        }
+    }
+    return types;
 }
 
 bool QGCMapEngineManager::importArchive(const QString &archivePath)

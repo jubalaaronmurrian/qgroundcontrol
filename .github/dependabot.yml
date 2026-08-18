@@ -1,10 +1,8 @@
-# Dependabot configuration
-# To merge dependabot PRs, comment "@dependabot merge" after CI passes
-# See: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/managing-pull-requests-for-dependency-updates
-
+# Dependabot owns GitHub Actions only. npm, python (uv, /tools), and pre-commit are
+# handled by Renovate (see .github/renovate.json). Merge bot PRs with: @dependabot merge.
+# Docs: https://docs.github.com/en/code-security/dependabot
 version: 2
 updates:
-  # Monitor GitHub Actions in workflows and all custom actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -13,8 +11,7 @@ updates:
       prefix: "ci"
       include: "scope"
     open-pull-requests-limit: 10
+    labels: ["dependencies"]
     groups:
       github-actions:
-        patterns:
-          - "*"
-    # npm dependencies managed by Renovate (see renovate.json)
+        patterns: ["*"]

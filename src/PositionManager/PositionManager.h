@@ -1,14 +1,12 @@
 ﻿#pragma once
 
-#include <QtCore/QLoggingCategory>
+#include <QtCore/QDateTime>
 #include <QtCore/QObject>
 #include <QtPositioning/QGeoCoordinate>
 #include <QtPositioning/QGeoPositionInfo>
+#include <QtPositioning/QGeoPositionInfoSource>
 #include <QtQmlIntegration/QtQmlIntegration>
 
-Q_DECLARE_LOGGING_CATEGORY(QGCPositionManagerLog)
-
-class QGeoPositionInfoSource;
 class QNmeaPositionInfoSource;
 class QGCCompass;
 
@@ -36,9 +34,21 @@ public:
     qreal gcsPositionHorizontalAccuracy() const { return _gcsPositionHorizontalAccuracy; }
     qreal gcsPositionVerticalAccuracy() const {return _gcsPositionVerticalAccuracy;}
     QGeoPositionInfo geoPositionInfo() const { return _geoPositionInfo; }
+    QGeoPositionInfoSource::Error gcsPositioningError() const { return _gcsPositioningError; }
+
+    /// Local arrival time of the last position update which passed the accuracy gates and was
+    /// copied into gcsPosition. Invalid until the first such update arrives. This is the local
+    /// clock rather than the position source's own timestamp, which on some platforms (e.g.
+    /// Android) is offset from the system clock.
+    ///     @return Arrival time, in UTC, of the last position update applied to gcsPosition.
+    QDateTime gcsPositionTimestamp() const { return _gcsPositionTimestamp; }
+
     int updateInterval() const { return _updateInterval; }
 
     void setNmeaSourceDevice(QIODevice *device);
+    /// Tears down any active NMEA source and falls back to the platform's default
+    /// position source (e.g. the integrated Android GPS).
+    void resetNmeaSourceDevice();
 
 signals:
     void gcsPositionChanged(QGeoCoordinate gcsPosition);
@@ -48,6 +58,7 @@ signals:
 
 private slots:
     void _positionUpdated(const QGeoPositionInfo &update);
+    void _positionError(QGeoPositionInfoSource::Error gcsPositioningError);
 
 private:
     enum QGCPositionSource {
@@ -69,7 +80,10 @@ private:
     int _updateInterval = 0;
 
     QGeoPositionInfo _geoPositionInfo;
+    QGeoPositionInfoSource::Error  _gcsPositioningError = QGeoPositionInfoSource::NoError;
+
     QGeoCoordinate _gcsPosition;
+    QDateTime _gcsPositionTimestamp;
     qreal _gcsHeading = qQNaN();
     qreal _gcsPositionHorizontalAccuracy = std::numeric_limits<qreal>::infinity();
     qreal _gcsPositionVerticalAccuracy = std::numeric_limits<qreal>::infinity();

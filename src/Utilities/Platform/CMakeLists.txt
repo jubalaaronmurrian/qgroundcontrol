@@ -7,14 +7,16 @@ target_sources(${CMAKE_PROJECT_NAME}
     PRIVATE
         Platform.cc
         Platform.h
+        GraphicsSetup.cc
+        GraphicsSetup.h
+        RunGuard.cc
+        RunGuard.h
 )
 
-# Signal handling and single-instance guard not available on mobile platforms
+# Signal handling uses POSIX signals, not available on mobile platforms
 if(NOT ANDROID AND NOT IOS)
     target_sources(${CMAKE_PROJECT_NAME}
         PRIVATE
-            RunGuard.cc
-            RunGuard.h
             SignalHandler.cc
             SignalHandler.h
     )

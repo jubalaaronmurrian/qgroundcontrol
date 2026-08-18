@@ -6,10 +6,6 @@
 #include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QTimer>
-#include <QtCore/QLoggingCategory>
-
-Q_DECLARE_LOGGING_CATEGORY(FTPManagerLog)
-
 class Vehicle;
 
 class FTPManager : public QObject
@@ -51,6 +47,9 @@ public:
     /// @return true: process has started, false: error
     /// Signals listDirectoryComplete
     bool listDirectory(uint8_t fromCompId, const QString& fromURI);
+
+    /// true when the vehicle NAK'ed kCmdListDirectoryWithTime, i.e. directory listings carry no modification times.
+    bool listDirectoryWithTimeUnsupported() const { return _listDirWithTimeSupport == WithTimeSupport_t::Unsupported; }
 
     /// Deletes a file on the vehicle.
     ///     @param fromCompId Component id of the component to delete from. If fromCompId is MAV_COMP_ID_ALL, then MAV_COMP_ID_AUTOPILOT1 is used.
@@ -135,11 +134,12 @@ private:
     };
 
     struct ListDirectoryState_t {
-        uint8_t     sessionId;
-        uint32_t    expectedOffset;         ///< offset which should be coming next
-        QString     fullPathOnVehicle;      ///< Fully qualified path to file on vehicle
-        QStringList rgDirectoryList;
-        int         retryCount;
+        uint8_t                 sessionId;
+        uint32_t                expectedOffset;         ///< offset which should be coming next
+        QString                 fullPathOnVehicle;      ///< Fully qualified path to file on vehicle
+        QStringList             rgDirectoryList;
+        int                     retryCount;
+        MavlinkFTP::OpCode_t    opCode;                 ///< List opcode currently in use (kCmdListDirectoryWithTime or kCmdListDirectory)
 
         bool inProgress() const { return !fullPathOnVehicle.isEmpty(); }
 
@@ -149,8 +149,13 @@ private:
             fullPathOnVehicle.clear();
             rgDirectoryList.clear();
             retryCount      = 0;
+            opCode          = MavlinkFTP::kCmdListDirectory;
         }
     };
+
+    /// Whether the vehicle supports the kCmdListDirectoryWithTime command. Cached per FTPManager
+    /// instance (i.e. per vehicle) so repeated listings don't keep probing an unsupporting server.
+    enum class WithTimeSupport_t { Unknown, Supported, Unsupported };
 
     struct DeleteFileState_t {
         QString fullPathOnVehicle;      ///< Fully qualified path to file on vehicle
@@ -253,6 +258,7 @@ private:
     QTimer                  _ackOrNakTimeoutTimer;
     int                     _currentStateMachineIndex   = -1;
     uint16_t                _expectedIncomingSeqNumber  = 0;
+    WithTimeSupport_t       _listDirWithTimeSupport     = WithTimeSupport_t::Unknown;
 
     static const int _ackOrNakTimeoutMsecs  = 1000;
     static const int _maxRetry              = 3;
