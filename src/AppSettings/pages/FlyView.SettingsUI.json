@@ -90,13 +90,16 @@
         },
         {
             "heading": "Instrument Panel",
-            "keywords": ["compass", "indicators", "hud", "instrument", "nose up"],
+            "keywords": ["compass", "indicators", "hud", "instrument", "nose up","instrument panel top"],
             "controls": [
                 {
                     "setting": "flyViewSettings.showAdditionalIndicatorsCompass"
                 },
                 {
                     "setting": "flyViewSettings.lockNoseUpCompass"
+                },
+                {
+                    "setting":"flyViewSettings.instrumentPanelTop"
                 },
                 {
                     "setting": "flyViewSettings.instrumentQmlFile2"
